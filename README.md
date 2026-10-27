@@ -112,7 +112,6 @@ src/
 ### Requisitos Previos
 - **Node.js:** v20+ o v22+
 - **PostgreSQL:** v15+ o v16+
-- **Python:** 3.10+ (opcional, para regenerar el PDF del manual)
 
 ### Instalación y Configuración
 
