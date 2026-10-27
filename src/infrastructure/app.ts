@@ -10,6 +10,19 @@ import { openApiDocument } from './docs/openapi.js';
 export function createApp(db: Pool): Express {
   const app = express();
 
+  // Habilitar CORS para permitir solicitudes del Frontend
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(200);
+      return;
+    }
+    next();
+  });
+
   app.use(express.json());
 
   // Servir especificación OpenAPI en formato JSON

@@ -7,8 +7,15 @@ export interface LoginInputDTO {
 
 export interface AuthResponseDTO {
   token: string;
-  superAdmin: {
+  superAdmin?: {
     superAdminId: string;
+    nombre: string;
+    correo: string;
+  };
+  usuario?: {
+    usuarioId: string;
+    empresaId: string;
+    rolId: string;
     nombre: string;
     correo: string;
   };

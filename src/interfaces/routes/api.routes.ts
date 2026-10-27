@@ -71,7 +71,7 @@ export function createApiRouter(db: Pool): Router {
   const registrarUbicacionUseCase = new RegistrarUbicacionUseCase(ubicacionRepo, empresaRepo);
   const registrarUsuarioUseCase = new RegistrarUsuarioUseCase(usuarioRepo, empresaRepo, rolRepo);
   const registrarSuperAdminUseCase = new RegistrarSuperAdminUseCase(superAdminRepo);
-  const loginSuperAdminUseCase = new LoginSuperAdminUseCase(superAdminRepo);
+  const loginSuperAdminUseCase = new LoginSuperAdminUseCase(superAdminRepo, usuarioRepo);
 
   // 3. Instanciación de Controladores (Capa 3)
   const acopioController = new AcopioController(registrarAcopioUseCase, registrarGastoSeleccionadorUseCase, acopioRepo);
