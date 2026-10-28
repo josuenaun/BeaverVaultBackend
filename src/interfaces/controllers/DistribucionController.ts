@@ -3,6 +3,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { RegistrarDescargaLimaUseCase } from '../../application/use-cases/lima/RegistrarDescargaLimaUseCase.js';
 import { DistribuirUbicacionUseCase } from '../../application/use-cases/lima/DistribuirUbicacionUseCase.js';
+import { RegistrarDescargaLimaInputSchema, DistribuirJabaInputSchema } from '../../application/dtos/lima.dto.js';
 
 export class DistribucionController {
   constructor(
@@ -13,15 +14,11 @@ export class DistribucionController {
   async registrarDescarga(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const acopioId = String(req.params.acopioId);
-      const gasto = await this.registrarDescargaLimaUseCase.execute({
+      const input = RegistrarDescargaLimaInputSchema.parse({
+        ...req.body,
         acopioId,
-        tipoGasto: req.body.tipoGasto,
-        nombreReceptor: req.body.nombreReceptor,
-        cantidadJabas: req.body.cantidadJabas,
-        tarifaPorJaba: req.body.tarifaPorJaba,
-        usuarioRegistroId: req.body.usuarioRegistroId,
-        concepto: req.body.concepto,
       });
+      const gasto = await this.registrarDescargaLimaUseCase.execute(input);
 
       res.status(201).json({
         success: true,
@@ -36,10 +33,11 @@ export class DistribucionController {
   async trasladarUbicacion(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const jabaId = String(req.params.jabaId);
-      await this.distribuirUbicacionUseCase.execute({
+      const input = DistribuirJabaInputSchema.parse({
+        ...req.body,
         jabaId,
-        ubicacionId: req.body.ubicacionId,
       });
+      await this.distribuirUbicacionUseCase.execute(input);
 
       res.status(200).json({
         success: true,

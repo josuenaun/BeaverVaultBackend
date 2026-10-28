@@ -2,6 +2,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { RegistrarTransporteUseCase } from '../../application/use-cases/transporte/RegistrarTransporteUseCase.js';
+import { RegistrarTransporteInputSchema } from '../../application/dtos/transporte.dto.js';
 
 export class TransporteController {
   constructor(private readonly registrarTransporteUseCase: RegistrarTransporteUseCase) {}
@@ -9,13 +10,11 @@ export class TransporteController {
   async contratarFlete(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const acopioId = String(req.params.acopioId);
-      const resultado = await this.registrarTransporteUseCase.execute({
+      const input = RegistrarTransporteInputSchema.parse({
+        ...req.body,
         acopioId,
-        fleteCosto: req.body.fleteCosto,
-        nombreReceptor: req.body.nombreReceptor,
-        usuarioRegistroId: req.body.usuarioRegistroId,
-        concepto: req.body.concepto,
       });
+      const resultado = await this.registrarTransporteUseCase.execute(input);
 
       res.status(200).json({
         success: true,

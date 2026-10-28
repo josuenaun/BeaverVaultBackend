@@ -3,7 +3,7 @@
 import bcrypt from 'bcryptjs';
 import { SuperAdministrador } from '../../../domain/entities/SuperAdministrador.js';
 import { ISuperAdministradorRepository } from '../../../domain/repositories/ISuperAdministradorRepository.js';
-import { RegistrarSuperAdminInputDTO } from '../../dtos/ConfiguracionDTO.js';
+import { RegistrarSuperAdminInputDTO } from '../../dtos/configuracion.dto.js';
 import { ValidationError } from '../../../domain/errors/DomainError.js';
 
 export class RegistrarSuperAdminUseCase {

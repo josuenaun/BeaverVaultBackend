@@ -3,7 +3,7 @@
 import { Venta, DetalleVenta } from '../../../domain/entities/Venta.js';
 import { IVentaRepository } from '../../../domain/repositories/IVentaRepository.js';
 import { IInventarioKilosRepository } from '../../../domain/repositories/IInventarioKilosRepository.js';
-import { RegistrarVentaInputDTO } from '../../dtos/VentaDTO.js';
+import { RegistrarVentaInputDTO } from '../../dtos/venta.dto.js';
 import { BusinessRuleError, ValidationError } from '../../../domain/errors/DomainError.js';
 
 export class RegistrarVentaKilosUseCase {

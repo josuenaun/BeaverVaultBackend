@@ -2,7 +2,7 @@
 
 import { Empresa } from '../../../domain/entities/Empresa.js';
 import { IEmpresaRepository } from '../../../domain/repositories/IEmpresaRepository.js';
-import { RegistrarEmpresaInputDTO } from '../../dtos/ConfiguracionDTO.js';
+import { RegistrarEmpresaInputDTO } from '../../dtos/configuracion.dto.js';
 
 export class RegistrarEmpresaUseCase {
   constructor(private readonly empresaRepo: IEmpresaRepository) {}

@@ -3,7 +3,7 @@
 import { Ubicacion } from '../../../domain/entities/Ubicacion.js';
 import { IUbicacionRepository } from '../../../domain/repositories/IUbicacionRepository.js';
 import { IEmpresaRepository } from '../../../domain/repositories/IEmpresaRepository.js';
-import { RegistrarUbicacionInputDTO } from '../../dtos/ConfiguracionDTO.js';
+import { RegistrarUbicacionInputDTO } from '../../dtos/configuracion.dto.js';
 import { ValidationError } from '../../../domain/errors/DomainError.js';
 
 export class RegistrarUbicacionUseCase {

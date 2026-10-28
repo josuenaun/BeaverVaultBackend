@@ -5,7 +5,7 @@ import { Usuario } from '../../../domain/entities/Usuario.js';
 import { IUsuarioRepository } from '../../../domain/repositories/IUsuarioRepository.js';
 import { IEmpresaRepository } from '../../../domain/repositories/IEmpresaRepository.js';
 import { IRolRepository } from '../../../domain/repositories/IRolRepository.js';
-import { RegistrarUsuarioInputDTO } from '../../dtos/ConfiguracionDTO.js';
+import { RegistrarUsuarioInputDTO } from '../../dtos/configuracion.dto.js';
 import { ValidationError } from '../../../domain/errors/DomainError.js';
 
 export class RegistrarUsuarioUseCase {

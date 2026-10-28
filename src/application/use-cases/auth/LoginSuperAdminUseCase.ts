@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { ISuperAdministradorRepository } from '../../../domain/repositories/ISuperAdministradorRepository.js';
 import { IUsuarioRepository } from '../../../domain/repositories/IUsuarioRepository.js';
-import { LoginInputDTO, AuthResponseDTO } from '../../dtos/AuthDTO.js';
+import { LoginInputDTO, AuthResponseDTO } from '../../dtos/auth.dto.js';
 import { ValidationError, BusinessRuleError } from '../../../domain/errors/DomainError.js';
 import { config } from '../../../infrastructure/config/env.js';
 

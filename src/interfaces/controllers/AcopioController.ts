@@ -4,6 +4,7 @@ import { Request, Response, NextFunction } from 'express';
 import { RegistrarAcopioUseCase } from '../../application/use-cases/acopio/RegistrarAcopioUseCase.js';
 import { RegistrarGastoSeleccionadorUseCase } from '../../application/use-cases/acopio/RegistrarGastoSeleccionadorUseCase.js';
 import { IAcopioRepository } from '../../domain/repositories/IAcopioRepository.js';
+import { RegistrarAcopioInputSchema, RegistrarGastoSeleccionadorInputSchema } from '../../application/dtos/acopio.dto.js';
 
 export class AcopioController {
   constructor(
@@ -14,14 +15,8 @@ export class AcopioController {
 
   async crearAcopio(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const acopio = await this.registrarAcopioUseCase.execute({
-        empresaId: req.body.empresaId,
-        encargadoLote: req.body.encargadoLote,
-        fechaCompra: new Date(req.body.fechaCompra),
-        origen: req.body.origen,
-        creadoPorUsuarioId: req.body.creadoPorUsuarioId,
-        jabas: req.body.jabas,
-      });
+      const input = RegistrarAcopioInputSchema.parse(req.body);
+      const acopio = await this.registrarAcopioUseCase.execute(input);
 
       res.status(201).json({
         success: true,
@@ -36,14 +31,11 @@ export class AcopioController {
   async registrarPagoSeleccionador(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const acopioId = String(req.params.acopioId);
-      const gasto = await this.registrarGastoSeleccionadorUseCase.execute({
+      const input = RegistrarGastoSeleccionadorInputSchema.parse({
+        ...req.body,
         acopioId,
-        nombreReceptor: req.body.nombreReceptor,
-        cantidadJabas: req.body.cantidadJabas,
-        tarifaPorJaba: req.body.tarifaPorJaba,
-        usuarioRegistroId: req.body.usuarioRegistroId,
-        concepto: req.body.concepto,
       });
+      const gasto = await this.registrarGastoSeleccionadorUseCase.execute(input);
 
       res.status(201).json({
         success: true,

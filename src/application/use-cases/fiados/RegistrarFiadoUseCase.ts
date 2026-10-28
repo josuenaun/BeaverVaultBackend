@@ -2,7 +2,7 @@
 
 import { Fiado } from '../../../domain/entities/Fiado.js';
 import { IFiadoRepository } from '../../../domain/repositories/IFiadoRepository.js';
-import { RegistrarFiadoInputDTO } from '../../dtos/VentaDTO.js';
+import { RegistrarFiadoInputDTO } from '../../dtos/fiado.dto.js';
 
 export class RegistrarFiadoUseCase {
   constructor(private readonly fiadoRepo: IFiadoRepository) {}

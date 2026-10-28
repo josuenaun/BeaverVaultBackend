@@ -2,7 +2,7 @@
 
 import { IJabaRepository } from '../../../domain/repositories/IJabaRepository.js';
 import { ValidationError } from '../../../domain/errors/DomainError.js';
-import { DistribuirJabaInputDTO } from '../../dtos/AcopioDTO.js';
+import { DistribuirJabaInputDTO } from '../../dtos/lima.dto.js';
 
 export class DistribuirUbicacionUseCase {
   constructor(private readonly jabaRepo: IJabaRepository) {}

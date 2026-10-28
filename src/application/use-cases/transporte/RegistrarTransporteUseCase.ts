@@ -5,7 +5,7 @@ import { IAcopioRepository } from '../../../domain/repositories/IAcopioRepositor
 import { IGastoOperativoRepository } from '../../../domain/repositories/IGastoOperativoRepository.js';
 import { IJabaRepository } from '../../../domain/repositories/IJabaRepository.js';
 import { ValidationError } from '../../../domain/errors/DomainError.js';
-import { RegistrarTransporteInputDTO } from '../../dtos/AcopioDTO.js';
+import { RegistrarTransporteInputDTO } from '../../dtos/transporte.dto.js';
 
 export class RegistrarTransporteUseCase {
   constructor(

@@ -4,7 +4,7 @@ import { IJabaRepository } from '../../../domain/repositories/IJabaRepository.js
 import { IInventarioKilosRepository } from '../../../domain/repositories/IInventarioKilosRepository.js';
 import { InventarioKilos } from '../../../domain/entities/InventarioKilos.js';
 import { ValidationError } from '../../../domain/errors/DomainError.js';
-import { TransformarJabasInputDTO } from '../../dtos/VentaDTO.js';
+import { TransformarJabasInputDTO } from '../../dtos/transformacion.dto.js';
 
 export class TransformarJabasAKilosUseCase {
   constructor(

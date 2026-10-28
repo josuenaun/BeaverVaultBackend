@@ -7,6 +7,9 @@ import { RegistrarFiadoUseCase } from '../../application/use-cases/fiados/Regist
 import { IInventarioKilosRepository } from '../../domain/repositories/IInventarioKilosRepository.js';
 import { IVentaRepository } from '../../domain/repositories/IVentaRepository.js';
 import { IFiadoRepository } from '../../domain/repositories/IFiadoRepository.js';
+import { TransformarJabasInputSchema } from '../../application/dtos/transformacion.dto.js';
+import { RegistrarVentaInputSchema } from '../../application/dtos/venta.dto.js';
+import { RegistrarFiadoInputSchema } from '../../application/dtos/fiado.dto.js';
 
 export class VentaController {
   constructor(
@@ -21,10 +24,11 @@ export class VentaController {
   async transformarJabas(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const jabaId = String(req.params.jabaId);
-      const inventario = await this.transformarJabasAKilosUseCase.execute({
+      const input = TransformarJabasInputSchema.parse({
+        ...req.body,
         jabaId,
-        ubicacionId: req.body.ubicacionId,
       });
+      const inventario = await this.transformarJabasAKilosUseCase.execute(input);
 
       res.status(200).json({
         success: true,
@@ -38,7 +42,8 @@ export class VentaController {
 
   async registrarVenta(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const venta = await this.registrarVentaKilosUseCase.execute(req.body);
+      const input = RegistrarVentaInputSchema.parse(req.body);
+      const venta = await this.registrarVentaKilosUseCase.execute(input);
       res.status(201).json({
         success: true,
         message: 'Venta registrada con éxito',
@@ -51,14 +56,8 @@ export class VentaController {
 
   async registrarFiado(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const fiado = await this.registrarFiadoUseCase.execute({
-        empresaId: req.body.empresaId,
-        nombreDeudor: req.body.nombreDeudor,
-        motivoDeuda: req.body.motivoDeuda,
-        montoDeuda: req.body.montoDeuda,
-        fechaAdvertencia: new Date(req.body.fechaAdvertencia),
-        creadoPorUsuarioId: req.body.creadoPorUsuarioId,
-      });
+      const input = RegistrarFiadoInputSchema.parse(req.body);
+      const fiado = await this.registrarFiadoUseCase.execute(input);
 
       res.status(201).json({
         success: true,

@@ -11,6 +11,13 @@ import { IUbicacionRepository } from '../../domain/repositories/IUbicacionReposi
 import { IUsuarioRepository } from '../../domain/repositories/IUsuarioRepository.js';
 import { IRolRepository } from '../../domain/repositories/IRolRepository.js';
 import { ISuperAdministradorRepository } from '../../domain/repositories/ISuperAdministradorRepository.js';
+import {
+  RegistrarSuperAdminInputSchema,
+  RegistrarRolInputSchema,
+  RegistrarEmpresaInputSchema,
+  RegistrarUbicacionInputSchema,
+  RegistrarUsuarioInputSchema,
+} from '../../application/dtos/configuracion.dto.js';
 
 export class ConfiguracionController {
   constructor(
@@ -29,11 +36,8 @@ export class ConfiguracionController {
   // --- Super Administradores ---
   async crearSuperAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const admin = await this.registrarSuperAdminUseCase.execute({
-        nombre: req.body.nombre,
-        correo: req.body.correo,
-        contrasena: req.body.contrasena,
-      });
+      const input = RegistrarSuperAdminInputSchema.parse(req.body);
+      const admin = await this.registrarSuperAdminUseCase.execute(input);
 
       res.status(201).json({
         success: true,
@@ -83,7 +87,8 @@ export class ConfiguracionController {
   // --- Roles ---
   async crearRol(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const rol = await this.registrarRolUseCase.execute(req.body);
+      const input = RegistrarRolInputSchema.parse(req.body);
+      const rol = await this.registrarRolUseCase.execute(input);
       res.status(201).json({
         success: true,
         message: 'Rol creado correctamente',
@@ -122,7 +127,8 @@ export class ConfiguracionController {
   // --- Empresas ---
   async crearEmpresa(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const empresa = await this.registrarEmpresaUseCase.execute(req.body);
+      const input = RegistrarEmpresaInputSchema.parse(req.body);
+      const empresa = await this.registrarEmpresaUseCase.execute(input);
       res.status(201).json({
         success: true,
         message: 'Empresa registrada correctamente',
@@ -161,7 +167,8 @@ export class ConfiguracionController {
   // --- Ubicaciones ---
   async crearUbicacion(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const ubicacion = await this.registrarUbicacionUseCase.execute(req.body);
+      const input = RegistrarUbicacionInputSchema.parse(req.body);
+      const ubicacion = await this.registrarUbicacionUseCase.execute(input);
       res.status(201).json({
         success: true,
         message: 'Ubicación registrada correctamente',
@@ -201,13 +208,8 @@ export class ConfiguracionController {
   // --- Usuarios ---
   async crearUsuario(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const usuario = await this.registrarUsuarioUseCase.execute({
-        empresaId: req.body.empresaId,
-        rolId: req.body.rolId,
-        nombre: req.body.nombre,
-        correo: req.body.correo,
-        contrasena: req.body.contrasena,
-      });
+      const input = RegistrarUsuarioInputSchema.parse(req.body);
+      const usuario = await this.registrarUsuarioUseCase.execute(input);
 
       res.status(201).json({
         success: true,

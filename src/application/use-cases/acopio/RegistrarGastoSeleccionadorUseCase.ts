@@ -4,7 +4,7 @@ import { GastoOperativo } from '../../../domain/entities/GastoOperativo.js';
 import { IGastoOperativoRepository } from '../../../domain/repositories/IGastoOperativoRepository.js';
 import { IAcopioRepository } from '../../../domain/repositories/IAcopioRepository.js';
 import { ValidationError } from '../../../domain/errors/DomainError.js';
-import { RegistrarGastoSeleccionadorInputDTO } from '../../dtos/AcopioDTO.js';
+import { RegistrarGastoSeleccionadorInputDTO } from '../../dtos/acopio.dto.js';
 
 export class RegistrarGastoSeleccionadorUseCase {
   constructor(

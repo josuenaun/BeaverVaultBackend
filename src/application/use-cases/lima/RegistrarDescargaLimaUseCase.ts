@@ -4,7 +4,7 @@ import { GastoOperativo } from '../../../domain/entities/GastoOperativo.js';
 import { IGastoOperativoRepository } from '../../../domain/repositories/IGastoOperativoRepository.js';
 import { IAcopioRepository } from '../../../domain/repositories/IAcopioRepository.js';
 import { ValidationError } from '../../../domain/errors/DomainError.js';
-import { RegistrarDescargaLimaInputDTO } from '../../dtos/AcopioDTO.js';
+import { RegistrarDescargaLimaInputDTO } from '../../dtos/lima.dto.js';
 
 export class RegistrarDescargaLimaUseCase {
   constructor(

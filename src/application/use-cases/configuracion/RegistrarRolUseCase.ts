@@ -2,7 +2,7 @@
 
 import { Rol } from '../../../domain/entities/Rol.js';
 import { IRolRepository } from '../../../domain/repositories/IRolRepository.js';
-import { RegistrarRolInputDTO } from '../../dtos/ConfiguracionDTO.js';
+import { RegistrarRolInputDTO } from '../../dtos/configuracion.dto.js';
 import { ValidationError } from '../../../domain/errors/DomainError.js';
 
 export class RegistrarRolUseCase {

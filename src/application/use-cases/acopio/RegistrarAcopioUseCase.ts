@@ -4,7 +4,7 @@ import { Acopio } from '../../../domain/entities/Acopio.js';
 import { Jaba } from '../../../domain/entities/Jaba.js';
 import { IAcopioRepository } from '../../../domain/repositories/IAcopioRepository.js';
 import { IJabaRepository } from '../../../domain/repositories/IJabaRepository.js';
-import { RegistrarAcopioInputDTO } from '../../dtos/AcopioDTO.js';
+import { RegistrarAcopioInputDTO } from '../../dtos/acopio.dto.js';
 import { ValidationError } from '../../../domain/errors/DomainError.js';
 
 export class RegistrarAcopioUseCase {
