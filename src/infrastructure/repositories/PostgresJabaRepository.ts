@@ -158,4 +158,116 @@ export class PostgresJabaRepository implements IJabaRepository {
     `;
     await this.db.query(query, [ubicacionId, estado, acopioId]);
   }
+
+  async dividirJaba(
+    jabaId: string,
+    cantidadSeparar: number,
+    pesoSeparado: number,
+    ubicacionId: string
+  ): Promise<{ original: Jaba; nueva: Jaba }> {
+    const original = await this.findById(jabaId);
+    if (!original) {
+      throw new Error(`Jaba con ID ${jabaId} no encontrada`);
+    }
+
+    if (cantidadSeparar <= 0 || cantidadSeparar >= original.cantidadJabas) {
+      throw new Error(
+        `Cantidad a separar inválida: debe ser mayor a 0 y menor a ${original.cantidadJabas}`
+      );
+    }
+
+    if (pesoSeparado <= 0 || pesoSeparado >= original.pesoBruto) {
+      throw new Error(
+        `Peso a separar inválido: debe ser mayor a 0 y menor a ${original.pesoBruto} kg`
+      );
+    }
+
+    const nuevaCantOriginal = original.cantidadJabas - cantidadSeparar;
+    const nuevoPesoOriginal = Number((original.pesoBruto - pesoSeparado).toFixed(2));
+
+    const client = await this.db.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 1. Actualizar jaba original con remanente
+      const updateQuery = `
+        UPDATE jabas
+        SET cantidad_jabas = $1,
+            peso_bruto = $2,
+            fecha_actualizacion = CURRENT_TIMESTAMP
+        WHERE jaba_id = $3
+        RETURNING jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, estado, fecha_creacion, fecha_actualizacion
+      `;
+      const { rows: updateRows } = await client.query(updateQuery, [
+        nuevaCantOriginal,
+        nuevoPesoOriginal,
+        jabaId,
+      ]);
+      const ur = updateRows[0];
+
+      // 2. Insertar nueva jaba separada con la ubicación destino
+      const insertQuery = `
+        INSERT INTO jabas (acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, estado)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, estado, fecha_creacion, fecha_actualizacion
+      `;
+      const insertValues = [
+        original.acopioId,
+        ubicacionId,
+        original.tipoPalta,
+        original.categoria,
+        original.codigoColor,
+        cantidadSeparar,
+        pesoSeparado,
+        'Almacenada',
+      ];
+      const { rows: insertRows } = await client.query(insertQuery, insertValues);
+      const ir = insertRows[0];
+
+      // 3. Confirmar lote en estado Recibido en Lima
+      if (original.acopioId) {
+        await client.query(
+          "UPDATE acopios SET estado = 'Recibido', fecha_llegada = COALESCE(fecha_llegada, CURRENT_TIMESTAMP), fecha_actualizacion = CURRENT_TIMESTAMP WHERE acopio_id = $1",
+          [original.acopioId]
+        );
+      }
+
+      await client.query('COMMIT');
+
+      const originalActualizada = new Jaba({
+        jabaId: ur.jaba_id,
+        acopioId: ur.acopio_id,
+        ubicacionId: ur.ubicacion_id,
+        tipoPalta: ur.tipo_palta as TipoPalta,
+        categoria: ur.categoria,
+        codigoColor: ur.codigo_color,
+        cantidadJabas: parseInt(ur.cantidad_jabas, 10),
+        pesoBruto: parseFloat(ur.peso_bruto),
+        estado: ur.estado as EstadoJaba,
+        fechaCreacion: new Date(ur.fecha_creacion),
+        fechaActualizacion: new Date(ur.fecha_actualizacion),
+      });
+
+      const nuevaJaba = new Jaba({
+        jabaId: ir.jaba_id,
+        acopioId: ir.acopio_id,
+        ubicacionId: ir.ubicacion_id,
+        tipoPalta: ir.tipo_palta as TipoPalta,
+        categoria: ir.categoria,
+        codigoColor: ir.codigo_color,
+        cantidadJabas: parseInt(ir.cantidad_jabas, 10),
+        pesoBruto: parseFloat(ir.peso_bruto),
+        estado: ir.estado as EstadoJaba,
+        fechaCreacion: new Date(ir.fecha_creacion),
+        fechaActualizacion: new Date(ir.fecha_actualizacion),
+      });
+
+      return { original: originalActualizada, nueva: nuevaJaba };
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
 }

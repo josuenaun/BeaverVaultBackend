@@ -64,4 +64,16 @@ export class InventarioKilos {
     }
     this._kilosDisponibles -= kilos;
   }
+
+  toJSON() {
+    return {
+      inventarioId: this.inventarioId,
+      ubicacionId: this.ubicacionId,
+      tipoPalta: this.tipoPalta,
+      categoria: this.categoria,
+      kilosDisponibles: this._kilosDisponibles,
+      fechaCreacion: this.fechaCreacion,
+      fechaActualizacion: this.fechaActualizacion,
+    };
+  }
 }

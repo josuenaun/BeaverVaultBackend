@@ -2,7 +2,7 @@
 
 import { Pool } from 'pg';
 import { InventarioKilos } from '../../domain/entities/InventarioKilos.js';
-import { IInventarioKilosRepository } from '../../domain/repositories/IInventarioKilosRepository.js';
+import { IInventarioKilosRepository, InventarioConUbicacion } from '../../domain/repositories/IInventarioKilosRepository.js';
 import { TipoPalta } from '../../domain/constants/clasificacion.js';
 
 export class PostgresInventarioRepository implements IInventarioKilosRepository {
@@ -84,5 +84,36 @@ export class PostgresInventarioRepository implements IInventarioKilosRepository 
           fechaActualizacion: new Date(row.fecha_actualizacion),
         })
     );
+  }
+
+  async findByEmpresaId(empresaId: string): Promise<InventarioConUbicacion[]> {
+    const query = `
+      SELECT 
+        ik.inventario_id, 
+        ik.ubicacion_id, 
+        u.nombre AS ubicacion_nombre, 
+        u.tipo AS ubicacion_tipo, 
+        ik.tipo_palta, 
+        ik.categoria, 
+        ik.kilos_disponibles, 
+        ik.fecha_creacion, 
+        ik.fecha_actualizacion
+      FROM inventarios_kilos ik
+      INNER JOIN ubicaciones u ON ik.ubicacion_id = u.ubicacion_id
+      WHERE u.empresa_id = $1
+      ORDER BY u.nombre ASC, ik.tipo_palta ASC, ik.categoria ASC
+    `;
+    const { rows } = await this.db.query(query, [empresaId]);
+    return rows.map((row) => ({
+      inventarioId: row.inventario_id,
+      ubicacionId: row.ubicacion_id,
+      ubicacionNombre: row.ubicacion_nombre,
+      ubicacionTipo: row.ubicacion_tipo,
+      tipoPalta: row.tipo_palta as TipoPalta,
+      categoria: row.categoria,
+      kilosDisponibles: parseFloat(row.kilos_disponibles),
+      fechaCreacion: new Date(row.fecha_creacion),
+      fechaActualizacion: new Date(row.fecha_actualizacion),
+    }));
   }
 }

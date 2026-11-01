@@ -62,7 +62,7 @@ export function createApiRouter(db: Pool): Router {
   const registrarGastoSeleccionadorUseCase = new RegistrarGastoSeleccionadorUseCase(gastoRepo, acopioRepo);
   const registrarTransporteUseCase = new RegistrarTransporteUseCase(acopioRepo, jabaRepo, gastoRepo);
   const registrarDescargaLimaUseCase = new RegistrarDescargaLimaUseCase(gastoRepo, acopioRepo);
-  const distribuirUbicacionUseCase = new DistribuirUbicacionUseCase(jabaRepo);
+  const distribuirUbicacionUseCase = new DistribuirUbicacionUseCase(jabaRepo, acopioRepo);
   const transformarJabasAKilosUseCase = new TransformarJabasAKilosUseCase(jabaRepo, inventarioRepo);
   const registrarVentaKilosUseCase = new RegistrarVentaKilosUseCase(ventaRepo, inventarioRepo);
   const registrarFiadoUseCase = new RegistrarFiadoUseCase(fiadoRepo);
@@ -74,9 +74,9 @@ export function createApiRouter(db: Pool): Router {
   const loginSuperAdminUseCase = new LoginSuperAdminUseCase(superAdminRepo, usuarioRepo);
 
   // 3. Instanciación de Controladores (Capa 3)
-  const acopioController = new AcopioController(registrarAcopioUseCase, registrarGastoSeleccionadorUseCase, acopioRepo);
+  const acopioController = new AcopioController(registrarAcopioUseCase, registrarGastoSeleccionadorUseCase, acopioRepo, gastoRepo);
   const transporteController = new TransporteController(registrarTransporteUseCase);
-  const distribucionController = new DistribucionController(registrarDescargaLimaUseCase, distribuirUbicacionUseCase);
+  const distribucionController = new DistribucionController(registrarDescargaLimaUseCase, distribuirUbicacionUseCase, jabaRepo);
   const ventaController = new VentaController(
     transformarJabasAKilosUseCase,
     registrarVentaKilosUseCase,
@@ -136,16 +136,24 @@ export function createApiRouter(db: Pool): Router {
   router.delete('/acopios/:acopioId', (req, res, next) => acopioController.eliminarAcopio(req, res, next));
   router.post('/acopios/:acopioId/gastos/seleccionador', (req, res, next) => acopioController.registrarPagoSeleccionador(req, res, next));
 
+  // 5.1 Gastos Operativos (CRUD unificado: Seleccionador, Flete, Descarga)
+  router.get('/empresas/:empresaId/gastos', (req, res, next) => acopioController.listarGastosPorEmpresa(req, res, next));
+  router.get('/acopios/:acopioId/gastos', (req, res, next) => acopioController.listarGastosPorAcopio(req, res, next));
+  router.put('/gastos/:gastoId', (req, res, next) => acopioController.actualizarGasto(req, res, next));
+  router.delete('/gastos/:gastoId', (req, res, next) => acopioController.eliminarGasto(req, res, next));
+
   // 6. Etapa 2: Transporte
   router.post('/acopios/:acopioId/transporte', (req, res, next) => transporteController.contratarFlete(req, res, next));
 
   // 7. Etapa 3: Lima (Descarga y Distribución)
   router.post('/acopios/:acopioId/gastos/descarga', (req, res, next) => distribucionController.registrarDescarga(req, res, next));
   router.patch('/jabas/:jabaId/ubicacion', (req, res, next) => distribucionController.trasladarUbicacion(req, res, next));
+  router.post('/jabas/:jabaId/dividir', (req, res, next) => distribucionController.dividirJaba(req, res, next));
 
   // 8. Etapa 4: Ventas y Stock en Kilos
   router.post('/jabas/:jabaId/transformar-kilos', (req, res, next) => ventaController.transformarJabas(req, res, next));
   router.get('/ubicaciones/:ubicacionId/inventario-kilos', (req, res, next) => ventaController.listarInventarioPorUbicacion(req, res, next));
+  router.get('/empresas/:empresaId/inventario-kilos', (req, res, next) => ventaController.listarInventarioPorEmpresa(req, res, next));
   router.post('/ventas', (req, res, next) => ventaController.registrarVenta(req, res, next));
   router.get('/empresas/:empresaId/ventas', (req, res, next) => ventaController.listarVentasPorEmpresa(req, res, next));
 

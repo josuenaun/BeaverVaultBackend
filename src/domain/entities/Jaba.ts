@@ -89,4 +89,20 @@ export class Jaba {
   descartar(): void {
     this._estado = 'Descartada';
   }
+
+  toJSON() {
+    return {
+      jabaId: this.jabaId,
+      acopioId: this.acopioId,
+      ubicacionId: this._ubicacionId,
+      tipoPalta: this.tipoPalta,
+      categoria: this.categoria,
+      codigoColor: this.codigoColor,
+      cantidadJabas: this.cantidadJabas,
+      pesoBruto: this.pesoBruto,
+      estado: this._estado,
+      fechaCreacion: this.fechaCreacion,
+      fechaActualizacion: this.fechaActualizacion,
+    };
+  }
 }

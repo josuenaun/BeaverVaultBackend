@@ -8,4 +8,7 @@ export interface IGastoOperativoRepository {
   findById(gastoId: string): Promise<GastoOperativo | null>;
   findByAcopioId(acopioId: string): Promise<GastoOperativo[]>;
   findByTipo(tipoGasto: TipoGasto): Promise<GastoOperativo[]>;
+  findByEmpresaId(empresaId: string): Promise<GastoOperativo[]>;
+  update(gastoId: string, data: Partial<GastoOperativo>): Promise<GastoOperativo>;
+  delete(gastoId: string): Promise<void>;
 }

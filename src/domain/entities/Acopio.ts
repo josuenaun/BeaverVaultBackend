@@ -15,6 +15,7 @@ export interface AcopioProps {
   estado?: EstadoAcopio;
   creadoPorUsuarioId: string;
   jabas?: Jaba[];
+  gastos?: any[];
   fechaCreacion?: Date;
   fechaActualizacion?: Date;
 }
@@ -30,6 +31,7 @@ export class Acopio {
   private _estado: EstadoAcopio;
   readonly creadoPorUsuarioId: string;
   private _jabas: Jaba[];
+  private _gastos: any[];
   readonly fechaCreacion: Date;
   readonly fechaActualizacion: Date;
 
@@ -57,8 +59,17 @@ export class Acopio {
     this._estado = props.estado ?? 'En Transito';
     this.creadoPorUsuarioId = props.creadoPorUsuarioId;
     this._jabas = props.jabas ?? [];
+    this._gastos = props.gastos ?? [];
     this.fechaCreacion = props.fechaCreacion ?? new Date();
     this.fechaActualizacion = props.fechaActualizacion ?? new Date();
+  }
+
+  get gastos(): readonly any[] {
+    return this._gastos;
+  }
+
+  asignarGastos(gastos: any[]): void {
+    this._gastos = gastos;
   }
 
   get fleteCosto(): number {
@@ -103,5 +114,25 @@ export class Acopio {
 
   marcarLiquidado(): void {
     this._estado = 'Liquidado';
+  }
+
+  toJSON() {
+    return {
+      acopioId: this.acopioId,
+      empresaId: this.empresaId,
+      encargadoLote: this.encargadoLote,
+      fechaCompra: this.fechaCompra,
+      fechaLlegada: this._fechaLlegada,
+      origen: this.origen,
+      fleteCosto: this._fleteCosto,
+      estado: this._estado,
+      creadoPorUsuarioId: this.creadoPorUsuarioId,
+      jabas: this._jabas.map((j) => (typeof (j as any).toJSON === 'function' ? (j as any).toJSON() : j)),
+      gastos: this._gastos.map((g) => (typeof (g as any).toJSON === 'function' ? (g as any).toJSON() : g)),
+      totalJabas: this.totalJabas,
+      totalPesoBruto: this.totalPesoBruto,
+      fechaCreacion: this.fechaCreacion,
+      fechaActualizacion: this.fechaActualizacion,
+    };
   }
 }

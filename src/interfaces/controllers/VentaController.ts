@@ -82,6 +82,19 @@ export class VentaController {
     }
   }
 
+  async listarInventarioPorEmpresa(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const empresaId = String(req.params.empresaId);
+      const inventarios = await this.inventarioRepo.findByEmpresaId(empresaId);
+      res.status(200).json({
+        success: true,
+        data: inventarios,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async listarVentasPorEmpresa(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const empresaId = String(req.params.empresaId);

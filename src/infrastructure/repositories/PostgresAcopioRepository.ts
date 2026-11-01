@@ -2,8 +2,9 @@
 
 import { Pool } from 'pg';
 import { Acopio } from '../../domain/entities/Acopio.js';
+import { Jaba } from '../../domain/entities/Jaba.js';
 import { IAcopioRepository } from '../../domain/repositories/IAcopioRepository.js';
-import { EstadoAcopio } from '../../domain/constants/clasificacion.js';
+import { EstadoAcopio, EstadoJaba, TipoPalta } from '../../domain/constants/clasificacion.js';
 
 export class PostgresAcopioRepository implements IAcopioRepository {
   constructor(private readonly db: Pool) {}
@@ -53,6 +54,54 @@ export class PostgresAcopioRepository implements IAcopioRepository {
     if (rows.length === 0) return null;
 
     const row = rows[0];
+
+    // Cargar jabas asociadas
+    const jabasQuery = `
+      SELECT jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, estado, fecha_creacion, fecha_actualizacion
+      FROM jabas
+      WHERE acopio_id = $1
+      ORDER BY fecha_creacion ASC
+    `;
+    const { rows: jabaRows } = await this.db.query(jabasQuery, [acopioId]);
+    const jabas = jabaRows.map(
+      (jr) =>
+        new Jaba({
+          jabaId: jr.jaba_id,
+          acopioId: jr.acopio_id,
+          ubicacionId: jr.ubicacion_id,
+          tipoPalta: jr.tipo_palta as TipoPalta,
+          categoria: jr.categoria,
+          codigoColor: jr.codigo_color,
+          cantidadJabas: parseInt(jr.cantidad_jabas, 10),
+          pesoBruto: parseFloat(jr.peso_bruto),
+          estado: jr.estado as EstadoJaba,
+          fechaCreacion: new Date(jr.fecha_creacion),
+          fechaActualizacion: new Date(jr.fecha_actualizacion),
+        })
+    );
+
+    // Cargar gastos asociados
+    const gastosQuery = `
+      SELECT gasto_id, acopio_id, nombre_receptor, tipo_gasto, concepto, cantidad_jabas, tarifa_por_jaba, monto_total, usuario_registro_id, fecha_creacion, fecha_actualizacion
+      FROM gastos_operativos
+      WHERE acopio_id = $1
+      ORDER BY fecha_creacion ASC
+    `;
+    const { rows: gastoRows } = await this.db.query(gastosQuery, [acopioId]);
+    const gastos = gastoRows.map((gr) => ({
+      gastoId: gr.gasto_id,
+      acopioId: gr.acopio_id,
+      nombreReceptor: gr.nombre_receptor,
+      tipoGasto: gr.tipo_gasto,
+      concepto: gr.concepto,
+      cantidadJabas: gr.cantidad_jabas ? parseInt(gr.cantidad_jabas, 10) : null,
+      tarifaPorJaba: gr.tarifa_por_jaba ? parseFloat(gr.tarifa_por_jaba) : null,
+      montoTotal: parseFloat(gr.monto_total),
+      usuarioRegistroId: gr.usuario_registro_id,
+      fechaCreacion: new Date(gr.fecha_creacion),
+      fechaActualizacion: new Date(gr.fecha_actualizacion),
+    }));
+
     return new Acopio({
       acopioId: row.acopio_id,
       empresaId: row.empresa_id,
@@ -63,6 +112,8 @@ export class PostgresAcopioRepository implements IAcopioRepository {
       fleteCosto: parseFloat(row.flete_costo),
       estado: row.estado as EstadoAcopio,
       creadoPorUsuarioId: row.creado_por_usuario_id,
+      jabas,
+      gastos,
       fechaCreacion: new Date(row.fecha_creacion),
       fechaActualizacion: new Date(row.fecha_actualizacion),
     });
@@ -76,6 +127,68 @@ export class PostgresAcopioRepository implements IAcopioRepository {
       ORDER BY fecha_creacion DESC
     `;
     const { rows } = await this.db.query(query, [empresaId]);
+    if (rows.length === 0) return [];
+
+    // Consultar todas las jabas correspondientes a estos lotes de acopio
+    const acopioIds = rows.map((r) => r.acopio_id);
+    const jabasQuery = `
+      SELECT jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, estado, fecha_creacion, fecha_actualizacion
+      FROM jabas
+      WHERE acopio_id = ANY($1)
+      ORDER BY fecha_creacion ASC
+    `;
+    const { rows: jabaRows } = await this.db.query(jabasQuery, [acopioIds]);
+
+    const jabasPorAcopio = new Map<string, Jaba[]>();
+    for (const jr of jabaRows) {
+      if (!jabasPorAcopio.has(jr.acopio_id)) {
+        jabasPorAcopio.set(jr.acopio_id, []);
+      }
+      jabasPorAcopio.get(jr.acopio_id)!.push(
+        new Jaba({
+          jabaId: jr.jaba_id,
+          acopioId: jr.acopio_id,
+          ubicacionId: jr.ubicacion_id,
+          tipoPalta: jr.tipo_palta as TipoPalta,
+          categoria: jr.categoria,
+          codigoColor: jr.codigo_color,
+          cantidadJabas: parseInt(jr.cantidad_jabas, 10),
+          pesoBruto: parseFloat(jr.peso_bruto),
+          estado: jr.estado as EstadoJaba,
+          fechaCreacion: new Date(jr.fecha_creacion),
+          fechaActualizacion: new Date(jr.fecha_actualizacion),
+        })
+      );
+    }
+
+    // Consultar todos los gastos operativos correspondientes a estos lotes de acopio
+    const gastosQuery = `
+      SELECT gasto_id, acopio_id, nombre_receptor, tipo_gasto, concepto, cantidad_jabas, tarifa_por_jaba, monto_total, usuario_registro_id, fecha_creacion, fecha_actualizacion
+      FROM gastos_operativos
+      WHERE acopio_id = ANY($1)
+      ORDER BY fecha_creacion ASC
+    `;
+    const { rows: gastoRows } = await this.db.query(gastosQuery, [acopioIds]);
+    const gastosPorAcopio = new Map<string, any[]>();
+    for (const gr of gastoRows) {
+      if (!gastosPorAcopio.has(gr.acopio_id)) {
+        gastosPorAcopio.set(gr.acopio_id, []);
+      }
+      gastosPorAcopio.get(gr.acopio_id)!.push({
+        gastoId: gr.gasto_id,
+        acopioId: gr.acopio_id,
+        nombreReceptor: gr.nombre_receptor,
+        tipoGasto: gr.tipo_gasto,
+        concepto: gr.concepto,
+        cantidadJabas: gr.cantidad_jabas ? parseInt(gr.cantidad_jabas, 10) : null,
+        tarifaPorJaba: gr.tarifa_por_jaba ? parseFloat(gr.tarifa_por_jaba) : null,
+        montoTotal: parseFloat(gr.monto_total),
+        usuarioRegistroId: gr.usuario_registro_id,
+        fechaCreacion: new Date(gr.fecha_creacion),
+        fechaActualizacion: new Date(gr.fecha_actualizacion),
+      });
+    }
+
     return rows.map(
       (row) =>
         new Acopio({
@@ -88,6 +201,8 @@ export class PostgresAcopioRepository implements IAcopioRepository {
           fleteCosto: parseFloat(row.flete_costo),
           estado: row.estado as EstadoAcopio,
           creadoPorUsuarioId: row.creado_por_usuario_id,
+          jabas: jabasPorAcopio.get(row.acopio_id) || [],
+          gastos: gastosPorAcopio.get(row.acopio_id) || [],
           fechaCreacion: new Date(row.fecha_creacion),
           fechaActualizacion: new Date(row.fecha_actualizacion),
         })
