@@ -65,24 +65,20 @@ export class Jaba {
   }
 
   trasladar(nuevaUbicacionId: string): void {
-    if (this._estado === 'Convertida_Kilos') {
-      throw new ValidationError('No se puede mover un lote de jabas ya convertidas a kilos');
+    if (!nuevaUbicacionId) {
+      throw new ValidationError('El ID de la nueva ubicación es requerido');
     }
     this._ubicacionId = nuevaUbicacionId;
-    this._estado = 'Almacenada';
+    if (this._estado !== 'Convertida_Kilos') {
+      this._estado = 'Almacenada';
+    }
   }
 
   marcarEnTransito(): void {
-    if (this._estado === 'Convertida_Kilos') {
-      throw new ValidationError('No se puede enviar a tránsito un lote ya convertido a kilos');
-    }
     this._estado = 'En Transito';
   }
 
   marcarConvertidaKilos(): void {
-    if (this._estado === 'Convertida_Kilos') {
-      throw new ValidationError('El lote de jabas ya fue transformado a kilos previamente');
-    }
     this._estado = 'Convertida_Kilos';
   }
 

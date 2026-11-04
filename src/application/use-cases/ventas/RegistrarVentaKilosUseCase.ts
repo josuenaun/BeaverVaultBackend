@@ -48,6 +48,8 @@ export class RegistrarVentaKilosUseCase {
 
     const venta = new Venta({
       empresaId: input.empresaId,
+      ubicacionId: input.ubicacionId,
+      metodoPago: input.metodoPago,
       vendedorUsuarioId: input.vendedorUsuarioId,
       detalles: detalleEntities,
     });

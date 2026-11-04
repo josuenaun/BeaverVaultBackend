@@ -17,7 +17,12 @@ export type JabaItemDTO = z.infer<typeof JabaItemSchema>;
 export const RegistrarAcopioInputSchema = z.object({
   empresaId: z.string().uuid('ID de empresa inválido'),
   encargadoLote: z.string().min(1, 'El encargado del lote es requerido'),
-  fechaCompra: z.coerce.date(),
+  fechaCompra: z.union([z.string().min(10), z.date()]).transform((val) => {
+    if (typeof val === 'string') {
+      return val.includes('T') ? val.split('T')[0] : val;
+    }
+    return val.toISOString().split('T')[0];
+  }),
   origen: z.string().min(1, 'El origen es requerido'),
   creadoPorUsuarioId: z.string().uuid('ID de usuario inválido'),
   jabas: z.array(JabaItemSchema).min(1, 'Debe incluir al menos una jaba'),

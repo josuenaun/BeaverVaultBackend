@@ -46,4 +46,18 @@ export class DetalleVenta {
     this.fechaCreacion = props.fechaCreacion ?? new Date();
     this.fechaActualizacion = props.fechaActualizacion ?? new Date();
   }
+
+  toJSON() {
+    return {
+      detalleId: this.detalleId,
+      ventaId: this.ventaId,
+      tipoPalta: this.tipoPalta,
+      categoria: this.categoria,
+      kilosVendidos: this.kilosVendidos,
+      precioUnitario: this.precioUnitario,
+      subtotal: this.subtotal,
+      fechaCreacion: this.fechaCreacion,
+      fechaActualizacion: this.fechaActualizacion,
+    };
+  }
 }

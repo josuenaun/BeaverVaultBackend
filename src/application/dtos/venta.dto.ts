@@ -16,6 +16,7 @@ export const RegistrarVentaInputSchema = z.object({
   empresaId: z.string().uuid('ID de empresa inválido'),
   vendedorUsuarioId: z.string().uuid('ID de usuario vendedor inválido'),
   ubicacionId: z.string().uuid('ID de ubicación inválido'),
+  metodoPago: z.string().optional().default('Efectivo'),
   detalles: z.array(DetalleVentaItemSchema).min(1, 'Debe incluir al menos un detalle de venta'),
 });
 

@@ -8,7 +8,7 @@ export interface AcopioProps {
   acopioId?: string;
   empresaId: string;
   encargadoLote: string;
-  fechaCompra: Date;
+  fechaCompra: string | Date;
   fechaLlegada?: Date | null;
   origen: string;
   fleteCosto?: number;
@@ -24,7 +24,7 @@ export class Acopio {
   readonly acopioId?: string;
   readonly empresaId: string;
   readonly encargadoLote: string;
-  readonly fechaCompra: Date;
+  readonly fechaCompra: string;
   private _fechaLlegada: Date | null;
   readonly origen: string;
   private _fleteCosto: number;
@@ -52,7 +52,15 @@ export class Acopio {
     this.acopioId = props.acopioId;
     this.empresaId = props.empresaId;
     this.encargadoLote = props.encargadoLote.trim();
-    this.fechaCompra = props.fechaCompra;
+    if (typeof props.fechaCompra === 'string') {
+      this.fechaCompra = props.fechaCompra.includes('T')
+        ? props.fechaCompra.split('T')[0]
+        : props.fechaCompra;
+    } else if (props.fechaCompra instanceof Date) {
+      this.fechaCompra = props.fechaCompra.toISOString().split('T')[0];
+    } else {
+      this.fechaCompra = String(props.fechaCompra);
+    }
     this._fechaLlegada = props.fechaLlegada ?? null;
     this.origen = props.origen.trim();
     this._fleteCosto = props.fleteCosto ?? 0;

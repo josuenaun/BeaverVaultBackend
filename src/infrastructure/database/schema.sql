@@ -107,9 +107,11 @@ CREATE TABLE IF NOT EXISTS inventarios_kilos (
 CREATE TABLE IF NOT EXISTS ventas (
     venta_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     empresa_id UUID NOT NULL REFERENCES empresas(empresa_id) ON DELETE CASCADE,
+    ubicacion_id UUID NULL REFERENCES ubicaciones(ubicacion_id),
     vendedor_usuario_id UUID NOT NULL REFERENCES usuarios(usuario_id), 
     fecha_venta TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     monto_total NUMERIC(10,2) NOT NULL DEFAULT 0.00 CHECK (monto_total >= 0),
+    metodo_pago VARCHAR(50) NOT NULL DEFAULT 'Efectivo',
     fecha_creacion TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

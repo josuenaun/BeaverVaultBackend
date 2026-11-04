@@ -14,15 +14,17 @@ export class PostgresVentaRepository implements IVentaRepository {
       await client.query('BEGIN');
 
       const ventaQuery = `
-        INSERT INTO ventas (empresa_id, vendedor_usuario_id, fecha_venta, monto_total)
-        VALUES ($1, $2, $3, $4)
-        RETURNING venta_id, empresa_id, vendedor_usuario_id, fecha_venta, monto_total, fecha_creacion, fecha_actualizacion
+        INSERT INTO ventas (empresa_id, vendedor_usuario_id, ubicacion_id, fecha_venta, monto_total, metodo_pago)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING venta_id, empresa_id, vendedor_usuario_id, ubicacion_id, fecha_venta, monto_total, metodo_pago, fecha_creacion, fecha_actualizacion
       `;
       const ventaValues = [
         venta.empresaId,
         venta.vendedorUsuarioId,
+        venta.ubicacionId || null,
         venta.fechaVenta,
         venta.montoTotal,
+        venta.metodoPago || 'Efectivo',
       ];
 
       const { rows: ventaRows } = await client.query(ventaQuery, ventaValues);
@@ -69,9 +71,11 @@ export class PostgresVentaRepository implements IVentaRepository {
       return new Venta({
         ventaId: ventaRow.venta_id,
         empresaId: ventaRow.empresa_id,
+        ubicacionId: ventaRow.ubicacion_id,
         vendedorUsuarioId: ventaRow.vendedor_usuario_id,
         fechaVenta: new Date(ventaRow.fecha_venta),
         montoTotal: parseFloat(ventaRow.monto_total),
+        metodoPago: ventaRow.metodo_pago || 'Efectivo',
         detalles: savedDetalles,
         fechaCreacion: new Date(ventaRow.fecha_creacion),
         fechaActualizacion: new Date(ventaRow.fecha_actualizacion),
@@ -86,9 +90,21 @@ export class PostgresVentaRepository implements IVentaRepository {
 
   async findById(ventaId: string): Promise<Venta | null> {
     const ventaQuery = `
-      SELECT venta_id, empresa_id, vendedor_usuario_id, fecha_venta, monto_total, fecha_creacion, fecha_actualizacion
-      FROM ventas
-      WHERE venta_id = $1
+      SELECT 
+        v.venta_id, 
+        v.empresa_id, 
+        v.vendedor_usuario_id, 
+        v.ubicacion_id,
+        u.nombre AS ubicacion_nombre,
+        u.tipo AS ubicacion_tipo,
+        v.fecha_venta, 
+        v.monto_total, 
+        v.metodo_pago,
+        v.fecha_creacion, 
+        v.fecha_actualizacion
+      FROM ventas v
+      LEFT JOIN ubicaciones u ON v.ubicacion_id = u.ubicacion_id
+      WHERE v.venta_id = $1
     `;
     const { rows: ventaRows } = await this.db.query(ventaQuery, [ventaId]);
     if (ventaRows.length === 0) return null;
@@ -119,9 +135,12 @@ export class PostgresVentaRepository implements IVentaRepository {
     return new Venta({
       ventaId: vRow.venta_id,
       empresaId: vRow.empresa_id,
+      ubicacionId: vRow.ubicacion_id,
+      ubicacionNombre: vRow.ubicacion_nombre || vRow.ubicacion_tipo,
       vendedorUsuarioId: vRow.vendedor_usuario_id,
       fechaVenta: new Date(vRow.fecha_venta),
       montoTotal: parseFloat(vRow.monto_total),
+      metodoPago: vRow.metodo_pago || 'Efectivo',
       detalles,
       fechaCreacion: new Date(vRow.fecha_creacion),
       fechaActualizacion: new Date(vRow.fecha_actualizacion),
@@ -130,10 +149,22 @@ export class PostgresVentaRepository implements IVentaRepository {
 
   async findByEmpresaId(empresaId: string): Promise<Venta[]> {
     const ventaQuery = `
-      SELECT venta_id, empresa_id, vendedor_usuario_id, fecha_venta, monto_total, fecha_creacion, fecha_actualizacion
-      FROM ventas
-      WHERE empresa_id = $1
-      ORDER BY fecha_venta DESC
+      SELECT 
+        v.venta_id, 
+        v.empresa_id, 
+        v.vendedor_usuario_id, 
+        v.ubicacion_id,
+        u.nombre AS ubicacion_nombre,
+        u.tipo AS ubicacion_tipo,
+        v.fecha_venta, 
+        v.monto_total, 
+        v.metodo_pago,
+        v.fecha_creacion, 
+        v.fecha_actualizacion
+      FROM ventas v
+      LEFT JOIN ubicaciones u ON v.ubicacion_id = u.ubicacion_id
+      WHERE v.empresa_id = $1
+      ORDER BY v.fecha_venta DESC
     `;
     const { rows: ventaRows } = await this.db.query(ventaQuery, [empresaId]);
     const ventas: Venta[] = [];
@@ -164,9 +195,12 @@ export class PostgresVentaRepository implements IVentaRepository {
         new Venta({
           ventaId: vRow.venta_id,
           empresaId: vRow.empresa_id,
+          ubicacionId: vRow.ubicacion_id,
+          ubicacionNombre: vRow.ubicacion_nombre || vRow.ubicacion_tipo,
           vendedorUsuarioId: vRow.vendedor_usuario_id,
           fechaVenta: new Date(vRow.fecha_venta),
           montoTotal: parseFloat(vRow.monto_total),
+          metodoPago: vRow.metodo_pago || 'Efectivo',
           detalles,
           fechaCreacion: new Date(vRow.fecha_creacion),
           fechaActualizacion: new Date(vRow.fecha_actualizacion),

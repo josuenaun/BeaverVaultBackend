@@ -13,7 +13,7 @@ export class PostgresAcopioRepository implements IAcopioRepository {
     const query = `
       INSERT INTO acopios (empresa_id, encargado_lote, fecha_compra, fecha_llegada, origen, flete_costo, estado, creado_por_usuario_id)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING acopio_id, empresa_id, encargado_lote, fecha_compra, fecha_llegada, origen, flete_costo, estado, creado_por_usuario_id, fecha_creacion, fecha_actualizacion
+      RETURNING acopio_id, empresa_id, encargado_lote, fecha_compra::text as fecha_compra, fecha_llegada, origen, flete_costo, estado, creado_por_usuario_id, fecha_creacion, fecha_actualizacion
     `;
     const values = [
       acopio.empresaId,
@@ -33,7 +33,7 @@ export class PostgresAcopioRepository implements IAcopioRepository {
       acopioId: row.acopio_id,
       empresaId: row.empresa_id,
       encargadoLote: row.encargado_lote,
-      fechaCompra: new Date(row.fecha_compra),
+      fechaCompra: String(row.fecha_compra),
       fechaLlegada: row.fecha_llegada ? new Date(row.fecha_llegada) : null,
       origen: row.origen,
       fleteCosto: parseFloat(row.flete_costo),
@@ -46,7 +46,7 @@ export class PostgresAcopioRepository implements IAcopioRepository {
 
   async findById(acopioId: string): Promise<Acopio | null> {
     const query = `
-      SELECT acopio_id, empresa_id, encargado_lote, fecha_compra, fecha_llegada, origen, flete_costo, estado, creado_por_usuario_id, fecha_creacion, fecha_actualizacion
+      SELECT acopio_id, empresa_id, encargado_lote, fecha_compra::text as fecha_compra, fecha_llegada, origen, flete_costo, estado, creado_por_usuario_id, fecha_creacion, fecha_actualizacion
       FROM acopios
       WHERE acopio_id = $1
     `;
@@ -106,7 +106,7 @@ export class PostgresAcopioRepository implements IAcopioRepository {
       acopioId: row.acopio_id,
       empresaId: row.empresa_id,
       encargadoLote: row.encargado_lote,
-      fechaCompra: new Date(row.fecha_compra),
+      fechaCompra: String(row.fecha_compra),
       fechaLlegada: row.fecha_llegada ? new Date(row.fecha_llegada) : null,
       origen: row.origen,
       fleteCosto: parseFloat(row.flete_costo),
@@ -121,7 +121,7 @@ export class PostgresAcopioRepository implements IAcopioRepository {
 
   async findByEmpresaId(empresaId: string): Promise<Acopio[]> {
     const query = `
-      SELECT acopio_id, empresa_id, encargado_lote, fecha_compra, fecha_llegada, origen, flete_costo, estado, creado_por_usuario_id, fecha_creacion, fecha_actualizacion
+      SELECT acopio_id, empresa_id, encargado_lote, fecha_compra::text as fecha_compra, fecha_llegada, origen, flete_costo, estado, creado_por_usuario_id, fecha_creacion, fecha_actualizacion
       FROM acopios
       WHERE empresa_id = $1
       ORDER BY fecha_creacion DESC
@@ -195,7 +195,7 @@ export class PostgresAcopioRepository implements IAcopioRepository {
           acopioId: row.acopio_id,
           empresaId: row.empresa_id,
           encargadoLote: row.encargado_lote,
-          fechaCompra: new Date(row.fecha_compra),
+          fechaCompra: String(row.fecha_compra),
           fechaLlegada: row.fecha_llegada ? new Date(row.fecha_llegada) : null,
           origen: row.origen,
           fleteCosto: parseFloat(row.flete_costo),
@@ -230,6 +230,44 @@ export class PostgresAcopioRepository implements IAcopioRepository {
   }
 
   async delete(acopioId: string): Promise<void> {
+    // 1. Eliminar el acopio (hace eliminación en cascada a jabas y gastos_operativos)
     await this.db.query('DELETE FROM acopios WHERE acopio_id = $1', [acopioId]);
+
+    // 2. Si ya no quedan acopios en la base de datos, purgar completamente inventarios_kilos huérfanos
+    const countRes = await this.db.query('SELECT COUNT(*) FROM acopios');
+    const totalAcopios = parseInt(countRes.rows[0].count, 10);
+    if (totalAcopios === 0) {
+      await this.db.query('DELETE FROM inventarios_kilos');
+    } else {
+      // 3. Si quedan otros acopios, recalcular y sincronizar inventarios_kilos con las jabas restantes
+      await this.db.query(`
+        UPDATE inventarios_kilos ik
+        SET kilos_disponibles = GREATEST(0, COALESCE((
+          SELECT SUM(j.peso_bruto)
+          FROM jabas j
+          WHERE j.ubicacion_id = ik.ubicacion_id
+            AND j.tipo_palta = ik.tipo_palta
+            AND j.categoria = ik.categoria
+        ), 0) - COALESCE((
+          SELECT SUM(dv.kilos_vendidos)
+          FROM ventas v
+          INNER JOIN detalles_venta dv ON v.venta_id = dv.venta_id
+          WHERE v.ubicacion_id = ik.ubicacion_id
+            AND dv.tipo_palta = ik.tipo_palta
+            AND dv.categoria = ik.categoria
+        ), 0))
+      `);
+      // 4. Eliminar registros huérfanos que quedaron en 0 kilos y no tienen jabas existentes
+      await this.db.query(`
+        DELETE FROM inventarios_kilos ik
+        WHERE ik.kilos_disponibles = 0
+          AND NOT EXISTS (
+            SELECT 1 FROM jabas j 
+            WHERE j.ubicacion_id = ik.ubicacion_id 
+              AND j.tipo_palta = ik.tipo_palta 
+              AND j.categoria = ik.categoria
+          )
+      `);
+    }
   }
 }
