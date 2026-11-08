@@ -9,5 +9,6 @@ export interface IAcopioRepository {
   findByEmpresaId(empresaId: string): Promise<Acopio[]>;
   updateFlete(acopioId: string, fleteCosto: number): Promise<void>;
   updateEstado(acopioId: string, estado: EstadoAcopio, fechaLlegada?: Date | null): Promise<void>;
+  verificarYLiquidarSiAgotado(acopioId: string): Promise<boolean>;
   delete(acopioId: string): Promise<void>;
 }

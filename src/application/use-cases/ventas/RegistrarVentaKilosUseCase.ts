@@ -3,13 +3,17 @@
 import { Venta, DetalleVenta } from '../../../domain/entities/Venta.js';
 import { IVentaRepository } from '../../../domain/repositories/IVentaRepository.js';
 import { IInventarioKilosRepository } from '../../../domain/repositories/IInventarioKilosRepository.js';
+import { IJabaRepository } from '../../../domain/repositories/IJabaRepository.js';
+import { IAcopioRepository } from '../../../domain/repositories/IAcopioRepository.js';
 import { RegistrarVentaInputDTO } from '../../dtos/venta.dto.js';
 import { BusinessRuleError, ValidationError } from '../../../domain/errors/DomainError.js';
 
 export class RegistrarVentaKilosUseCase {
   constructor(
     private readonly ventaRepo: IVentaRepository,
-    private readonly inventarioRepo: IInventarioKilosRepository
+    private readonly inventarioRepo: IInventarioKilosRepository,
+    private readonly jabaRepo?: IJabaRepository,
+    private readonly acopioRepo?: IAcopioRepository
   ) {}
 
   async execute(input: RegistrarVentaInputDTO): Promise<Venta> {
@@ -35,6 +39,37 @@ export class RegistrarVentaKilosUseCase {
 
       inventario.descontarStock(item.kilosVendidos);
       await this.inventarioRepo.save(inventario);
+
+      // Algoritmo FIFO: Imputar venta a jabas y acopios activos en la ubicación
+      if (this.jabaRepo && this.acopioRepo) {
+        let kilosPendientes = item.kilosVendidos;
+        const jabasActivas = await this.jabaRepo.findActivasPorUbicacionYPalta(
+          input.ubicacionId,
+          item.tipoPalta,
+          item.categoria
+        );
+
+        const acopiosAfectados = new Set<string>();
+
+        for (const jaba of jabasActivas) {
+          if (kilosPendientes <= 0) break;
+          const pesoDisponible = jaba.pesoActual > 0 ? jaba.pesoActual : jaba.pesoBruto;
+          const aDescontar = Math.min(pesoDisponible, kilosPendientes);
+
+          if (aDescontar > 0 && jaba.jabaId) {
+            await this.jabaRepo.descontarPeso(jaba.jabaId, aDescontar);
+            kilosPendientes = Number((kilosPendientes - aDescontar).toFixed(2));
+            if (jaba.acopioId) {
+              acopiosAfectados.add(jaba.acopioId);
+            }
+          }
+        }
+
+        // Evaluar si los lotes de acopio llegaron a 0 kg para pasarlos a 'Liquidado'
+        for (const acopioId of acopiosAfectados) {
+          await this.acopioRepo.verificarYLiquidarSiAgotado(acopioId);
+        }
+      }
 
       detalleEntities.push(
         new DetalleVenta({

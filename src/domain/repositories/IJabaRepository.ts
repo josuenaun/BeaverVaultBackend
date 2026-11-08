@@ -12,4 +12,6 @@ export interface IJabaRepository {
   updateEstado(jabaId: string, estado: EstadoJaba): Promise<void>;
   updateUbicacionYEstadoByAcopio(acopioId: string, ubicacionId: string | null, estado: EstadoJaba): Promise<void>;
   dividirJaba(jabaId: string, cantidadSeparar: number, pesoSeparado: number, ubicacionId: string): Promise<{ original: Jaba; nueva: Jaba }>;
+  findActivasPorUbicacionYPalta(ubicacionId: string, tipoPalta: string, categoria: string): Promise<Jaba[]>;
+  descontarPeso(jabaId: string, kilosADescontar: number): Promise<void>;
 }

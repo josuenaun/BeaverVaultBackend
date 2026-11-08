@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS jabas (
     codigo_color VARCHAR(50) NOT NULL,
     cantidad_jabas INT NOT NULL DEFAULT 1 CHECK (cantidad_jabas > 0), 
     peso_bruto NUMERIC(10,2) NOT NULL CHECK (peso_bruto > 0), 
+    peso_actual NUMERIC(10,2) NOT NULL DEFAULT 0.00 CHECK (peso_actual >= 0),
     estado VARCHAR(50) NOT NULL DEFAULT 'Almacenada' CHECK (estado IN ('Almacenada', 'En Transito', 'Convertida_Kilos', 'Descartada')),
     fecha_creacion TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -90,6 +91,8 @@ CREATE TABLE IF NOT EXISTS jabas (
         (tipo_palta = 'Villacampa' AND categoria IN ('1era', 'Manchada'))
     )
 );
+ALTER TABLE jabas ADD COLUMN IF NOT EXISTS peso_actual NUMERIC(10,2) NOT NULL DEFAULT 0.00;
+UPDATE jabas SET peso_actual = peso_bruto WHERE (peso_actual = 0.00 OR peso_actual IS NULL) AND estado != 'Convertida_Kilos';
 
 -- 8. INVENTARIOS KILOS (Transformación y Merma)
 CREATE TABLE IF NOT EXISTS inventarios_kilos (
@@ -157,3 +160,94 @@ CREATE TABLE IF NOT EXISTS fiados (
     fecha_creacion TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ============================================================================
+-- 13. DATOS INICIALES PREDETERMINADOS (SEED DATA)
+-- ============================================================================
+
+DO $$
+DECLARE
+    v_empresa_id UUID;
+    v_rol_admin_id UUID;
+    v_rol_vendedor_id UUID;
+BEGIN
+    -- 1. Inserción de la Empresa Principal (JOSBECORSA S.A.C.)
+    SELECT empresa_id INTO v_empresa_id 
+    FROM empresas 
+    WHERE nombre = 'JOSBECORSA S.A.C.' 
+    LIMIT 1;
+
+    IF v_empresa_id IS NULL THEN
+        INSERT INTO empresas (nombre)
+        VALUES ('JOSBECORSA S.A.C.')
+        RETURNING empresa_id INTO v_empresa_id;
+    END IF;
+
+    -- 2. Inserción de Roles del Sistema
+    SELECT rol_id INTO v_rol_admin_id 
+    FROM roles 
+    WHERE nombre = 'Administrador' 
+    LIMIT 1;
+
+    IF v_rol_admin_id IS NULL THEN
+        INSERT INTO roles (nombre, descripcion)
+        VALUES ('Administrador', 'Acceso a gestion operativa')
+        RETURNING rol_id INTO v_rol_admin_id;
+    ELSE
+        UPDATE roles 
+        SET descripcion = 'Acceso a gestion operativa' 
+        WHERE rol_id = v_rol_admin_id;
+    END IF;
+
+    SELECT rol_id INTO v_rol_vendedor_id 
+    FROM roles 
+    WHERE nombre = 'Vendedor de puesto' 
+    LIMIT 1;
+
+    IF v_rol_vendedor_id IS NULL THEN
+        INSERT INTO roles (nombre, descripcion)
+        VALUES ('Vendedor de puesto', 'Acceso al módulo de ventas')
+        RETURNING rol_id INTO v_rol_vendedor_id;
+    ELSE
+        UPDATE roles 
+        SET descripcion = 'Acceso al módulo de ventas' 
+        WHERE rol_id = v_rol_vendedor_id;
+    END IF;
+
+    -- 3. Inserción de Usuario Inicial (Yolanda Salvatierra) vinculado a JOSBECORSA S.A.C. y Rol Administrador
+    -- Contraseña hasheada con bcryptjs: yolanda123
+    IF NOT EXISTS (SELECT 1 FROM usuarios WHERE correo = 'yolanda@gmail.com') THEN
+        INSERT INTO usuarios (empresa_id, rol_id, nombre, correo, contrasena_hash)
+        VALUES (
+            v_empresa_id,
+            v_rol_admin_id,
+            'Yolanda Salvatierra',
+            'yolanda@gmail.com',
+            '$2b$10$d6MKyoARBebf6NeQC2Nm2.7hbwXtzIi0fwUq54eoB2S32I5P4SHcm'
+        );
+    ELSE
+        UPDATE usuarios
+        SET empresa_id = v_empresa_id,
+            rol_id = v_rol_admin_id,
+            nombre = 'Yolanda Salvatierra',
+            contrasena_hash = '$2b$10$d6MKyoARBebf6NeQC2Nm2.7hbwXtzIi0fwUq54eoB2S32I5P4SHcm'
+        WHERE correo = 'yolanda@gmail.com';
+    END IF;
+
+    -- 4. Inserción de Ubicaciones Iniciales vinculadas a JOSBECORSA S.A.C.
+    IF NOT EXISTS (SELECT 1 FROM ubicaciones WHERE empresa_id = v_empresa_id AND nombre = 'Puesto Principal') THEN
+        INSERT INTO ubicaciones (empresa_id, nombre, tipo)
+        VALUES (v_empresa_id, 'Puesto Principal', 'Puesto Principal');
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM ubicaciones WHERE empresa_id = v_empresa_id AND nombre = 'Puesto Contingencia') THEN
+        INSERT INTO ubicaciones (empresa_id, nombre, tipo)
+        VALUES (v_empresa_id, 'Puesto Contingencia', 'Puesto Contingencia');
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM ubicaciones WHERE empresa_id = v_empresa_id AND nombre = 'Cámara de Frío') THEN
+        INSERT INTO ubicaciones (empresa_id, nombre, tipo)
+        VALUES (v_empresa_id, 'Cámara de Frío', 'Camara Frio');
+    END IF;
+END $$;
+

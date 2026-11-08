@@ -104,6 +104,18 @@ export class Acopio {
     return this._jabas.reduce((sum, j) => sum + j.pesoBruto, 0);
   }
 
+  get totalPesoActual(): number {
+    return Number(
+      this._jabas
+        .reduce((sum, j) => sum + (j.pesoActual !== undefined ? j.pesoActual : j.pesoBruto), 0)
+        .toFixed(2)
+    );
+  }
+
+  estaAgotado(): boolean {
+    return this._jabas.length > 0 && this.totalPesoActual === 0;
+  }
+
   agregarJaba(jaba: Jaba): void {
     this._jabas.push(jaba);
   }
@@ -139,6 +151,7 @@ export class Acopio {
       gastos: this._gastos.map((g) => (typeof (g as any).toJSON === 'function' ? (g as any).toJSON() : g)),
       totalJabas: this.totalJabas,
       totalPesoBruto: this.totalPesoBruto,
+      totalPesoActual: this.totalPesoActual,
       fechaCreacion: this.fechaCreacion,
       fechaActualizacion: this.fechaActualizacion,
     };

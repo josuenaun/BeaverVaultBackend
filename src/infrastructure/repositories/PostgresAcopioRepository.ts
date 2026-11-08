@@ -57,7 +57,13 @@ export class PostgresAcopioRepository implements IAcopioRepository {
 
     // Cargar jabas asociadas
     const jabasQuery = `
-      SELECT jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, estado, fecha_creacion, fecha_actualizacion
+      SELECT jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto,
+             CASE 
+               WHEN estado = 'Convertida_Kilos' THEN 0.00
+               WHEN peso_actual IS NULL THEN peso_bruto 
+               ELSE peso_actual 
+             END as peso_actual,
+             estado, fecha_creacion, fecha_actualizacion
       FROM jabas
       WHERE acopio_id = $1
       ORDER BY fecha_creacion ASC
@@ -74,6 +80,7 @@ export class PostgresAcopioRepository implements IAcopioRepository {
           codigoColor: jr.codigo_color,
           cantidadJabas: parseInt(jr.cantidad_jabas, 10),
           pesoBruto: parseFloat(jr.peso_bruto),
+          pesoActual: parseFloat(jr.peso_actual),
           estado: jr.estado as EstadoJaba,
           fechaCreacion: new Date(jr.fecha_creacion),
           fechaActualizacion: new Date(jr.fecha_actualizacion),
@@ -132,7 +139,13 @@ export class PostgresAcopioRepository implements IAcopioRepository {
     // Consultar todas las jabas correspondientes a estos lotes de acopio
     const acopioIds = rows.map((r) => r.acopio_id);
     const jabasQuery = `
-      SELECT jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, estado, fecha_creacion, fecha_actualizacion
+      SELECT jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto,
+             CASE 
+               WHEN estado = 'Convertida_Kilos' THEN 0.00
+               WHEN peso_actual IS NULL THEN peso_bruto 
+               ELSE peso_actual 
+             END as peso_actual,
+             estado, fecha_creacion, fecha_actualizacion
       FROM jabas
       WHERE acopio_id = ANY($1)
       ORDER BY fecha_creacion ASC
@@ -154,6 +167,7 @@ export class PostgresAcopioRepository implements IAcopioRepository {
           codigoColor: jr.codigo_color,
           cantidadJabas: parseInt(jr.cantidad_jabas, 10),
           pesoBruto: parseFloat(jr.peso_bruto),
+          pesoActual: parseFloat(jr.peso_actual),
           estado: jr.estado as EstadoJaba,
           fechaCreacion: new Date(jr.fecha_creacion),
           fechaActualizacion: new Date(jr.fecha_actualizacion),
@@ -227,6 +241,34 @@ export class PostgresAcopioRepository implements IAcopioRepository {
       WHERE acopio_id = $3
     `;
     await this.db.query(query, [estado, fechaLlegada ?? null, acopioId]);
+  }
+
+  async verificarYLiquidarSiAgotado(acopioId: string): Promise<boolean> {
+    const query = `
+      SELECT 
+        COUNT(*) as total_jabas,
+        COALESCE(SUM(
+          CASE 
+            WHEN estado = 'Convertida_Kilos' THEN 0
+            WHEN peso_actual IS NULL THEN peso_bruto 
+            ELSE peso_actual 
+          END
+        ), 0) as total_peso_remanente
+      FROM jabas
+      WHERE acopio_id = $1
+    `;
+    const { rows } = await this.db.query(query, [acopioId]);
+    const totalJabas = parseInt(rows[0].total_jabas, 10);
+    const remanente = parseFloat(rows[0].total_peso_remanente);
+
+    if (totalJabas > 0 && remanente <= 0) {
+      await this.db.query(
+        "UPDATE acopios SET estado = 'Liquidado', fecha_actualizacion = CURRENT_TIMESTAMP WHERE acopio_id = $1",
+        [acopioId]
+      );
+      return true;
+    }
+    return false;
   }
 
   async delete(acopioId: string): Promise<void> {

@@ -12,6 +12,7 @@ export interface JabaProps {
   codigoColor: string;
   cantidadJabas: number;
   pesoBruto: number;
+  pesoActual?: number;
   estado?: EstadoJaba;
   fechaCreacion?: Date;
   fechaActualizacion?: Date;
@@ -26,6 +27,7 @@ export class Jaba {
   readonly codigoColor: string;
   readonly cantidadJabas: number;
   readonly pesoBruto: number;
+  private _pesoActual: number;
   private _estado: EstadoJaba;
   readonly fechaCreacion: Date;
   readonly fechaActualizacion: Date;
@@ -51,6 +53,7 @@ export class Jaba {
     this.codigoColor = props.codigoColor.trim();
     this.cantidadJabas = props.cantidadJabas;
     this.pesoBruto = props.pesoBruto;
+    this._pesoActual = props.pesoActual !== undefined ? Number(props.pesoActual) : props.pesoBruto;
     this._estado = props.estado ?? 'Almacenada';
     this.fechaCreacion = props.fechaCreacion ?? new Date();
     this.fechaActualizacion = props.fechaActualizacion ?? new Date();
@@ -60,8 +63,22 @@ export class Jaba {
     return this._ubicacionId;
   }
 
+  get pesoActual(): number {
+    return this._pesoActual;
+  }
+
   get estado(): EstadoJaba {
     return this._estado;
+  }
+
+  descontarPeso(kilos: number): void {
+    if (kilos <= 0) {
+      throw new ValidationError('La cantidad de kilos a descontar debe ser mayor a 0');
+    }
+    this._pesoActual = Math.max(0, Number((this._pesoActual - kilos).toFixed(2)));
+    if (this._pesoActual === 0) {
+      this._estado = 'Convertida_Kilos';
+    }
   }
 
   trasladar(nuevaUbicacionId: string): void {
@@ -96,6 +113,7 @@ export class Jaba {
       codigoColor: this.codigoColor,
       cantidadJabas: this.cantidadJabas,
       pesoBruto: this.pesoBruto,
+      pesoActual: this._pesoActual,
       estado: this._estado,
       fechaCreacion: this.fechaCreacion,
       fechaActualizacion: this.fechaActualizacion,

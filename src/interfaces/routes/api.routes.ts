@@ -64,7 +64,7 @@ export function createApiRouter(db: Pool): Router {
   const registrarDescargaLimaUseCase = new RegistrarDescargaLimaUseCase(gastoRepo, acopioRepo);
   const distribuirUbicacionUseCase = new DistribuirUbicacionUseCase(jabaRepo, acopioRepo, inventarioRepo);
   const transformarJabasAKilosUseCase = new TransformarJabasAKilosUseCase(jabaRepo, inventarioRepo);
-  const registrarVentaKilosUseCase = new RegistrarVentaKilosUseCase(ventaRepo, inventarioRepo);
+  const registrarVentaKilosUseCase = new RegistrarVentaKilosUseCase(ventaRepo, inventarioRepo, jabaRepo, acopioRepo);
   const registrarFiadoUseCase = new RegistrarFiadoUseCase(fiadoRepo);
   const registrarRolUseCase = new RegistrarRolUseCase(rolRepo);
   const registrarEmpresaUseCase = new RegistrarEmpresaUseCase(empresaRepo);

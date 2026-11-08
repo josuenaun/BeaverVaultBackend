@@ -12,9 +12,9 @@ export class PostgresJabaRepository implements IJabaRepository {
     const saved: Jaba[] = [];
     for (const jaba of jabas) {
       const query = `
-        INSERT INTO jabas (acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, estado)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, estado, fecha_creacion, fecha_actualizacion
+        INSERT INTO jabas (acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, peso_actual, estado)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, COALESCE(peso_actual, peso_bruto) as peso_actual, estado, fecha_creacion, fecha_actualizacion
       `;
       const values = [
         jaba.acopioId,
@@ -24,6 +24,7 @@ export class PostgresJabaRepository implements IJabaRepository {
         jaba.codigoColor,
         jaba.cantidadJabas,
         jaba.pesoBruto,
+        jaba.pesoActual !== undefined ? jaba.pesoActual : jaba.pesoBruto,
         jaba.estado,
       ];
 
@@ -40,6 +41,7 @@ export class PostgresJabaRepository implements IJabaRepository {
           codigoColor: row.codigo_color,
           cantidadJabas: parseInt(row.cantidad_jabas, 10),
           pesoBruto: parseFloat(row.peso_bruto),
+          pesoActual: parseFloat(row.peso_actual),
           estado: row.estado as EstadoJaba,
           fechaCreacion: new Date(row.fecha_creacion),
           fechaActualizacion: new Date(row.fecha_actualizacion),
@@ -51,7 +53,13 @@ export class PostgresJabaRepository implements IJabaRepository {
 
   async findById(jabaId: string): Promise<Jaba | null> {
     const query = `
-      SELECT jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, estado, fecha_creacion, fecha_actualizacion
+      SELECT jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto,
+             CASE 
+               WHEN estado = 'Convertida_Kilos' THEN 0.00
+               WHEN peso_actual IS NULL THEN peso_bruto 
+               ELSE peso_actual 
+             END as peso_actual,
+             estado, fecha_creacion, fecha_actualizacion
       FROM jabas
       WHERE jaba_id = $1
     `;
@@ -68,6 +76,7 @@ export class PostgresJabaRepository implements IJabaRepository {
       codigoColor: row.codigo_color,
       cantidadJabas: parseInt(row.cantidad_jabas, 10),
       pesoBruto: parseFloat(row.peso_bruto),
+      pesoActual: parseFloat(row.peso_actual),
       estado: row.estado as EstadoJaba,
       fechaCreacion: new Date(row.fecha_creacion),
       fechaActualizacion: new Date(row.fecha_actualizacion),
@@ -76,7 +85,13 @@ export class PostgresJabaRepository implements IJabaRepository {
 
   async findByAcopioId(acopioId: string): Promise<Jaba[]> {
     const query = `
-      SELECT jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, estado, fecha_creacion, fecha_actualizacion
+      SELECT jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto,
+             CASE 
+               WHEN estado = 'Convertida_Kilos' THEN 0.00
+               WHEN peso_actual IS NULL THEN peso_bruto 
+               ELSE peso_actual 
+             END as peso_actual,
+             estado, fecha_creacion, fecha_actualizacion
       FROM jabas
       WHERE acopio_id = $1
       ORDER BY fecha_creacion ASC
@@ -93,6 +108,7 @@ export class PostgresJabaRepository implements IJabaRepository {
           codigoColor: row.codigo_color,
           cantidadJabas: parseInt(row.cantidad_jabas, 10),
           pesoBruto: parseFloat(row.peso_bruto),
+          pesoActual: parseFloat(row.peso_actual),
           estado: row.estado as EstadoJaba,
           fechaCreacion: new Date(row.fecha_creacion),
           fechaActualizacion: new Date(row.fecha_actualizacion),
@@ -102,7 +118,13 @@ export class PostgresJabaRepository implements IJabaRepository {
 
   async findByUbicacionId(ubicacionId: string): Promise<Jaba[]> {
     const query = `
-      SELECT jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, estado, fecha_creacion, fecha_actualizacion
+      SELECT jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto,
+             CASE 
+               WHEN estado = 'Convertida_Kilos' THEN 0.00
+               WHEN peso_actual IS NULL THEN peso_bruto 
+               ELSE peso_actual 
+             END as peso_actual,
+             estado, fecha_creacion, fecha_actualizacion
       FROM jabas
       WHERE ubicacion_id = $1
       ORDER BY fecha_creacion ASC
@@ -119,6 +141,7 @@ export class PostgresJabaRepository implements IJabaRepository {
           codigoColor: row.codigo_color,
           cantidadJabas: parseInt(row.cantidad_jabas, 10),
           pesoBruto: parseFloat(row.peso_bruto),
+          pesoActual: parseFloat(row.peso_actual),
           estado: row.estado as EstadoJaba,
           fechaCreacion: new Date(row.fecha_creacion),
           fechaActualizacion: new Date(row.fecha_actualizacion),
@@ -184,6 +207,8 @@ export class PostgresJabaRepository implements IJabaRepository {
 
     const nuevaCantOriginal = original.cantidadJabas - cantidadSeparar;
     const nuevoPesoOriginal = Number((original.pesoBruto - pesoSeparado).toFixed(2));
+    const pesoActualBase = original.pesoActual > 0 ? original.pesoActual : original.pesoBruto;
+    const nuevoPesoActualOriginal = Math.max(0, Number((pesoActualBase - pesoSeparado).toFixed(2)));
 
     const client = await this.db.connect();
     try {
@@ -194,22 +219,24 @@ export class PostgresJabaRepository implements IJabaRepository {
         UPDATE jabas
         SET cantidad_jabas = $1,
             peso_bruto = $2,
+            peso_actual = $3,
             fecha_actualizacion = CURRENT_TIMESTAMP
-        WHERE jaba_id = $3
-        RETURNING jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, estado, fecha_creacion, fecha_actualizacion
+        WHERE jaba_id = $4
+        RETURNING jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, peso_actual, estado, fecha_creacion, fecha_actualizacion
       `;
       const { rows: updateRows } = await client.query(updateQuery, [
         nuevaCantOriginal,
         nuevoPesoOriginal,
+        nuevoPesoActualOriginal,
         jabaId,
       ]);
       const ur = updateRows[0];
 
       // 2. Insertar nueva jaba separada con la ubicación destino
       const insertQuery = `
-        INSERT INTO jabas (acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, estado)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, estado, fecha_creacion, fecha_actualizacion
+        INSERT INTO jabas (acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, peso_actual, estado)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING jaba_id, acopio_id, ubicacion_id, tipo_palta, categoria, codigo_color, cantidad_jabas, peso_bruto, peso_actual, estado, fecha_creacion, fecha_actualizacion
       `;
       const insertValues = [
         original.acopioId,
@@ -218,6 +245,7 @@ export class PostgresJabaRepository implements IJabaRepository {
         original.categoria,
         original.codigoColor,
         cantidadSeparar,
+        pesoSeparado,
         pesoSeparado,
         'Almacenada',
       ];
@@ -243,6 +271,7 @@ export class PostgresJabaRepository implements IJabaRepository {
         codigoColor: ur.codigo_color,
         cantidadJabas: parseInt(ur.cantidad_jabas, 10),
         pesoBruto: parseFloat(ur.peso_bruto),
+        pesoActual: parseFloat(ur.peso_actual),
         estado: ur.estado as EstadoJaba,
         fechaCreacion: new Date(ur.fecha_creacion),
         fechaActualizacion: new Date(ur.fecha_actualizacion),
@@ -257,6 +286,7 @@ export class PostgresJabaRepository implements IJabaRepository {
         codigoColor: ir.codigo_color,
         cantidadJabas: parseInt(ir.cantidad_jabas, 10),
         pesoBruto: parseFloat(ir.peso_bruto),
+        pesoActual: parseFloat(ir.peso_actual),
         estado: ir.estado as EstadoJaba,
         fechaCreacion: new Date(ir.fecha_creacion),
         fechaActualizacion: new Date(ir.fecha_actualizacion),
@@ -269,5 +299,58 @@ export class PostgresJabaRepository implements IJabaRepository {
     } finally {
       client.release();
     }
+  }
+
+  async findActivasPorUbicacionYPalta(
+    ubicacionId: string,
+    tipoPalta: string,
+    categoria: string
+  ): Promise<Jaba[]> {
+    const query = `
+      SELECT j.jaba_id, j.acopio_id, j.ubicacion_id, j.tipo_palta, j.categoria, j.codigo_color, 
+             j.cantidad_jabas, j.peso_bruto, 
+             COALESCE(j.peso_actual, j.peso_bruto) as peso_actual, 
+             j.estado, j.fecha_creacion, j.fecha_actualizacion
+      FROM jabas j
+      INNER JOIN acopios a ON j.acopio_id = a.acopio_id
+      WHERE j.ubicacion_id = $1
+        AND j.tipo_palta = $2
+        AND j.categoria = $3
+        AND j.estado NOT IN ('Convertida_Kilos', 'Descartada')
+        AND COALESCE(j.peso_actual, j.peso_bruto) > 0
+      ORDER BY a.fecha_compra ASC, j.fecha_creacion ASC
+    `;
+    const { rows } = await this.db.query(query, [ubicacionId, tipoPalta, categoria]);
+    return rows.map(
+      (row) =>
+        new Jaba({
+          jabaId: row.jaba_id,
+          acopioId: row.acopio_id,
+          ubicacionId: row.ubicacion_id,
+          tipoPalta: row.tipo_palta as TipoPalta,
+          categoria: row.categoria,
+          codigoColor: row.codigo_color,
+          cantidadJabas: parseInt(row.cantidad_jabas, 10),
+          pesoBruto: parseFloat(row.peso_bruto),
+          pesoActual: parseFloat(row.peso_actual),
+          estado: row.estado as EstadoJaba,
+          fechaCreacion: new Date(row.fecha_creacion),
+          fechaActualizacion: new Date(row.fecha_actualizacion),
+        })
+    );
+  }
+
+  async descontarPeso(jabaId: string, kilosADescontar: number): Promise<void> {
+    const query = `
+      UPDATE jabas
+      SET peso_actual = GREATEST(0, COALESCE(peso_actual, peso_bruto) - $1),
+          estado = CASE 
+            WHEN GREATEST(0, COALESCE(peso_actual, peso_bruto) - $1) = 0 THEN 'Convertida_Kilos'
+            ELSE estado 
+          END,
+          fecha_actualizacion = CURRENT_TIMESTAMP
+      WHERE jaba_id = $2
+    `;
+    await this.db.query(query, [kilosADescontar, jabaId]);
   }
 }
