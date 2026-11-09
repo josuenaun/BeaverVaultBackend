@@ -20,6 +20,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Documentación y directivas internas de agentes
+agents.md
+AGENTS.md
+
 # Archivos del sistema y editores
 .DS_Store
 Thumbs.db
