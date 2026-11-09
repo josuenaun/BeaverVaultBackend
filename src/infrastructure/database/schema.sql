@@ -78,7 +78,6 @@ CREATE TABLE IF NOT EXISTS jabas (
     codigo_color VARCHAR(50) NOT NULL,
     cantidad_jabas INT NOT NULL DEFAULT 1 CHECK (cantidad_jabas > 0), 
     peso_bruto NUMERIC(10,2) NOT NULL CHECK (peso_bruto > 0), 
-    peso_actual NUMERIC(10,2) NOT NULL DEFAULT 0.00 CHECK (peso_actual >= 0),
     estado VARCHAR(50) NOT NULL DEFAULT 'Almacenada' CHECK (estado IN ('Almacenada', 'En Transito', 'Convertida_Kilos', 'Descartada')),
     fecha_creacion TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -91,8 +90,6 @@ CREATE TABLE IF NOT EXISTS jabas (
         (tipo_palta = 'Villacampa' AND categoria IN ('1era', 'Manchada'))
     )
 );
-ALTER TABLE jabas ADD COLUMN IF NOT EXISTS peso_actual NUMERIC(10,2) NOT NULL DEFAULT 0.00;
-UPDATE jabas SET peso_actual = peso_bruto WHERE (peso_actual = 0.00 OR peso_actual IS NULL) AND estado != 'Convertida_Kilos';
 
 -- 8. INVENTARIOS KILOS (Transformación y Merma)
 CREATE TABLE IF NOT EXISTS inventarios_kilos (
