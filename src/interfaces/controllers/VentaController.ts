@@ -121,6 +121,62 @@ export class VentaController {
     }
   }
 
+  async actualizarFiado(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const fiadoId = String(req.params.fiadoId);
+      const { montoAbono, montoDeuda, motivoDeuda, estado, nota, metodoPago } = req.body;
+
+      const fiadoExistente = await this.fiadoRepo.findById(fiadoId);
+      if (!fiadoExistente) {
+        res.status(404).json({ success: false, message: 'Fiado no encontrado' });
+        return;
+      }
+
+      let nuevoMonto = montoDeuda !== undefined ? Number(montoDeuda) : fiadoExistente.montoDeuda;
+      if (montoAbono !== undefined && Number(montoAbono) > 0) {
+        nuevoMonto = Math.max(0, fiadoExistente.montoDeuda - Number(montoAbono));
+      }
+
+      // Si la deuda quedó en 0, eliminar o saldar completamente
+      if (nuevoMonto <= 0) {
+        await this.fiadoRepo.delete(fiadoId);
+        res.status(200).json({
+          success: true,
+          message: 'Deuda saldada en su totalidad',
+          data: { fiadoId, saldado: true, saldoRestante: 0 },
+        });
+        return;
+      }
+
+      let nuevoMotivo = motivoDeuda || fiadoExistente.motivoDeuda;
+      if (montoAbono && Number(montoAbono) > 0) {
+        const detalleAbono = `[Abonó S/ ${Number(montoAbono).toFixed(2)}${metodoPago ? ` via ${metodoPago}` : ''}${nota ? ` - ${nota}` : ''}]`;
+        nuevoMotivo = `${nuevoMotivo} ${detalleAbono}`.slice(0, 250);
+      }
+
+      let estadoFinal = estado || fiadoExistente.estado;
+      if (estadoFinal === 'Mora') estadoFinal = 'Vencido';
+
+      await this.fiadoRepo.actualizar(fiadoId, {
+        montoDeuda: nuevoMonto,
+        motivoDeuda: nuevoMotivo,
+        estado: estadoFinal,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Abono registrado con éxito',
+        data: {
+          fiadoId,
+          saldoRestante: nuevoMonto,
+          motivoDeuda: nuevoMotivo,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async eliminarFiado(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const fiadoId = String(req.params.fiadoId);

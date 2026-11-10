@@ -99,6 +99,29 @@ export class PostgresFiadoRepository implements IFiadoRepository {
     await this.db.query(query, [estado, fiadoId]);
   }
 
+  async actualizar(fiadoId: string, data: { montoDeuda?: number; motivoDeuda?: string; estado?: string }): Promise<void> {
+    const sets: string[] = ['fecha_actualizacion = CURRENT_TIMESTAMP'];
+    const values: any[] = [];
+    let idx = 1;
+
+    if (data.montoDeuda !== undefined) {
+      sets.push(`monto_deuda = $${idx++}`);
+      values.push(data.montoDeuda);
+    }
+    if (data.motivoDeuda !== undefined) {
+      sets.push(`motivo_deuda = $${idx++}`);
+      values.push(data.motivoDeuda);
+    }
+    if (data.estado !== undefined) {
+      sets.push(`estado = $${idx++}`);
+      values.push(data.estado);
+    }
+
+    values.push(fiadoId);
+    const query = `UPDATE fiados SET ${sets.join(', ')} WHERE fiado_id = $${idx}`;
+    await this.db.query(query, values);
+  }
+
   async delete(fiadoId: string): Promise<void> {
     await this.db.query('DELETE FROM fiados WHERE fiado_id = $1', [fiadoId]);
   }

@@ -160,6 +160,9 @@ export function createApiRouter(db: Pool): Router {
   // 9. Fiados
   router.post('/fiados', (req, res, next) => ventaController.registrarFiado(req, res, next));
   router.get('/empresas/:empresaId/fiados', (req, res, next) => ventaController.listarFiadosPorEmpresa(req, res, next));
+  router.patch('/fiados/:fiadoId', (req, res, next) => ventaController.actualizarFiado(req, res, next));
+  router.patch('/fiados/:fiadoId/estado', (req, res, next) => ventaController.actualizarFiado(req, res, next));
+  router.post('/fiados/:fiadoId/abonos', (req, res, next) => ventaController.actualizarFiado(req, res, next));
   router.delete('/fiados/:fiadoId', (req, res, next) => ventaController.eliminarFiado(req, res, next));
 
   return router;
