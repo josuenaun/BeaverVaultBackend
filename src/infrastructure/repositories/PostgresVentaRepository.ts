@@ -210,4 +210,13 @@ export class PostgresVentaRepository implements IVentaRepository {
 
     return ventas;
   }
+
+  async actualizarMetodoPago(ventaId: string, metodoPago: string): Promise<void> {
+    const query = `
+      UPDATE ventas
+      SET metodo_pago = $1, fecha_actualizacion = CURRENT_TIMESTAMP
+      WHERE venta_id = $2
+    `;
+    await this.db.query(query, [metodoPago, ventaId]);
+  }
 }

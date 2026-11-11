@@ -24,12 +24,8 @@ export class RegistrarTransporteUseCase {
       throw new ValidationError('El costo del flete debe ser mayor a 0');
     }
 
-    // Actualiza el costo de flete y mantiene / confirma estado En Transito
+    // Actualiza solo el costo de flete sin modificar el estado del acopio ni de las jabas
     await this.acopioRepo.updateFlete(input.acopioId, input.fleteCosto);
-    await this.acopioRepo.updateEstado(input.acopioId, 'En Transito');
-
-    // Actualiza el estado de las jabas del acopio a 'En Transito'
-    await this.jabaRepo.updateUbicacionYEstadoByAcopio(input.acopioId, null, 'En Transito');
 
     const totalJabas = acopio.totalJabas;
     const tarifaPorJaba = totalJabas > 0 ? Number((input.fleteCosto / totalJabas).toFixed(2)) : undefined;

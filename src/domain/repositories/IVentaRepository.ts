@@ -6,4 +6,5 @@ export interface IVentaRepository {
   save(venta: Venta): Promise<Venta>;
   findById(ventaId: string): Promise<Venta | null>;
   findByEmpresaId(empresaId: string): Promise<Venta[]>;
+  actualizarMetodoPago(ventaId: string, metodoPago: string): Promise<void>;
 }

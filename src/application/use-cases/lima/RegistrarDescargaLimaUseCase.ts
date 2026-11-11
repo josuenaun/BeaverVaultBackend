@@ -29,9 +29,6 @@ export class RegistrarDescargaLimaUseCase {
       throw new ValidationError('La tarifa por jaba/bulto debe ser mayor a 0');
     }
 
-    // Marca el acopio como Recibido con fecha de llegada
-    await this.acopioRepo.updateEstado(input.acopioId, 'Recibido', new Date());
-
     const montoTotal = Number((input.cantidadJabas * input.tarifaPorJaba).toFixed(2));
     const concepto = input.concepto ?? `Pago de descarga (${input.tipoGasto} - ${input.nombreReceptor}) por ${input.cantidadJabas} jabas`;
 

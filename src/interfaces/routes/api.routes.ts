@@ -155,6 +155,7 @@ export function createApiRouter(db: Pool): Router {
   router.get('/ubicaciones/:ubicacionId/inventario-kilos', (req, res, next) => ventaController.listarInventarioPorUbicacion(req, res, next));
   router.get('/empresas/:empresaId/inventario-kilos', (req, res, next) => ventaController.listarInventarioPorEmpresa(req, res, next));
   router.post('/ventas', (req, res, next) => ventaController.registrarVenta(req, res, next));
+  router.patch('/ventas/:ventaId/metodo-pago', (req, res, next) => ventaController.actualizarMetodoPagoVenta(req, res, next));
   router.get('/empresas/:empresaId/ventas', (req, res, next) => ventaController.listarVentasPorEmpresa(req, res, next));
 
   // 9. Fiados

@@ -8,8 +8,7 @@
     "start": "node dist/infrastructure/server.js",
     "dev": "tsx watch src/infrastructure/server.ts",
     "seed:admin": "tsx src/infrastructure/database/seeds/seed-superadmin.ts",
-    "test:db": "tsx src/infrastructure/test-connection.ts",
-    "generate:pdf": "python generate_pdf.py"
+    "test:db": "tsx src/infrastructure/test-connection.ts"
   },
   "keywords": [
     "clean-architecture",

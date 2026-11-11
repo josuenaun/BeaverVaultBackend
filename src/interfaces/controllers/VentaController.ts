@@ -124,7 +124,7 @@ export class VentaController {
   async actualizarFiado(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const fiadoId = String(req.params.fiadoId);
-      const { montoAbono, montoDeuda, motivoDeuda, estado, nota, metodoPago } = req.body;
+      const { montoAbono, montoDeuda, motivoDeuda, estado, nota, metodoPago, ventaId } = req.body;
 
       const fiadoExistente = await this.fiadoRepo.findById(fiadoId);
       if (!fiadoExistente) {
@@ -140,6 +140,13 @@ export class VentaController {
       // Si la deuda quedó en 0, eliminar o saldar completamente
       if (nuevoMonto <= 0) {
         await this.fiadoRepo.delete(fiadoId);
+
+        // Si se envió ventaId o está vinculado en motivoDeuda, actualizar el método de pago de la venta a 'Fiado (Pagado)'
+        const vid = ventaId || fiadoExistente.motivoDeuda?.match(/\[VID:([a-f0-9-]+)\]/i)?.[1];
+        if (vid) {
+          await this.ventaRepo.actualizarMetodoPago(vid, 'Fiado (Pagado)');
+        }
+
         res.status(200).json({
           success: true,
           message: 'Deuda saldada en su totalidad',
@@ -177,10 +184,38 @@ export class VentaController {
     }
   }
 
+  async actualizarMetodoPagoVenta(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const ventaId = String(req.params.ventaId);
+      const { metodoPago } = req.body;
+      if (!metodoPago) {
+        res.status(400).json({ success: false, message: 'El método de pago es requerido' });
+        return;
+      }
+      await this.ventaRepo.actualizarMetodoPago(ventaId, metodoPago);
+      res.status(200).json({
+        success: true,
+        message: 'Método de pago de venta actualizado con éxito',
+        data: { ventaId, metodoPago },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async eliminarFiado(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const fiadoId = String(req.params.fiadoId);
+      const ventaIdParam = req.query?.ventaId ? String(req.query.ventaId) : null;
+      const fiadoExistente = await this.fiadoRepo.findById(fiadoId);
+      const vid = ventaIdParam || fiadoExistente?.motivoDeuda?.match(/\[VID:([a-f0-9-]+)\]/i)?.[1];
+
       await this.fiadoRepo.delete(fiadoId);
+
+      if (vid) {
+        await this.ventaRepo.actualizarMetodoPago(vid, 'Fiado (Pagado)');
+      }
+
       res.status(200).json({
         success: true,
         message: 'Fiado eliminado correctamente',
